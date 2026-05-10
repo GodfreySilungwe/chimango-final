@@ -1,0 +1,4 @@
+
+> chimango-backend@1.0.0 build:lambda
+> if exist dist rmdir /s /q dist & mkdir dist && xcopy models dist\models\ /E /I /Y && xcopy services dist\services\ /E /I /Y && copy handler.js dist\ && copy server.js dist\ && copy package.json dist\ && cd dist && npm install --production && cd ..
+

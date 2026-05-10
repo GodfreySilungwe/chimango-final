@@ -1,0 +1,255 @@
+/* Responsive Design for Chimango Tour */
+
+/* Navbar Responsive */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 15px !important;
+  }
+  
+  .navbar-links {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  .navbar-links a,
+  .navbar-links button {
+    width: 100% !important;
+    text-align: center !important;
+    padding: 10px !important;
+  }
+  
+  .navbar-user {
+    width: 100% !important;
+    text-align: center !important;
+    margin: 10px 0 !important;
+  }
+}
+
+/* Activity Grid Responsive */
+@media (max-width: 640px) {
+  .activity-grid {
+    grid-template-columns: 1fr !important;
+    gap: 15px !important;
+    padding: 0 10px !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .activity-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+}
+
+/* Activity Card Responsive */
+@media (max-width: 768px) {
+  .activity-card {
+    margin: 0 !important;
+  }
+  
+  .activity-card-image {
+    height: 180px !important;
+  }
+  
+  .activity-card-content {
+    padding: 12px !important;
+  }
+  
+  .activity-card-title {
+    font-size: 16px !important;
+  }
+  
+  .activity-card-price {
+    font-size: 18px !important;
+  }
+}
+
+/* Modal Responsive */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 10px !important;
+  }
+  
+  .modal-container {
+    width: 95% !important;
+    margin: 10px auto !important;
+    max-height: 90vh !important;
+    border-radius: 12px !important;
+  }
+  
+  .modal-header {
+    padding: 15px !important;
+  }
+  
+  .modal-body {
+    padding: 15px !important;
+  }
+  
+  .modal-footer {
+    padding: 15px !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  
+  .modal-footer button {
+    width: 100% !important;
+  }
+}
+
+/* Booking Tabs Responsive */
+@media (max-width: 768px) {
+  .booking-tabs {
+    flex-direction: column !important;
+    gap: 5px !important;
+  }
+  
+  .booking-tabs button {
+    width: 100% !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
+  }
+}
+
+/* Form Responsive */
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column !important;
+    gap: 15px !important;
+  }
+  
+  .form-group {
+    width: 100% !important;
+  }
+  
+  .form-actions {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  
+  .form-actions button {
+    width: 100% !important;
+  }
+}
+
+/* Hero Carousel Responsive */
+@media (max-width: 768px) {
+  .hero-carousel {
+    height: 300px !important;
+  }
+  
+  .hero-carousel-title {
+    font-size: 18px !important;
+  }
+  
+  .hero-carousel-description {
+    font-size: 12px !important;
+    display: none !important;
+  }
+  
+  .hero-carousel-button {
+    padding: 6px 16px !important;
+    font-size: 12px !important;
+  }
+  
+  .hero-carousel-nav {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* Filters Section Responsive */
+@media (max-width: 768px) {
+  .filters-section {
+    padding: 15px !important;
+  }
+  
+  .filter-buttons {
+    gap: 8px !important;
+  }
+  
+  .filter-button {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Tables Responsive */
+@media (max-width: 768px) {
+  .table-container {
+    overflow-x: auto !important;
+  }
+  
+  table {
+    min-width: 600px !important;
+  }
+  
+  th, td {
+    padding: 8px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Footer Responsive */
+@media (max-width: 768px) {
+  footer {
+    text-align: center !important;
+    padding: 20px 15px !important;
+  }
+  
+  .footer-content {
+    flex-direction: column !important;
+    gap: 15px !important;
+  }
+  
+  .footer-links {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+}
+
+/* Chat Widget Responsive */
+@media (max-width: 768px) {
+  .chat-widget {
+    bottom: 10px !important;
+    right: 10px !important;
+  }
+  
+  .chat-window {
+    width: 90vw !important;
+    height: 80vh !important;
+    max-width: 350px !important;
+  }
+}
+
+/* Touch-friendly adjustments */
+@media (hover: none) {
+  .hover-scale:hover {
+    transform: none !important;
+  }
+  
+  .hover-shadow:hover {
+    box-shadow: none !important;
+  }
+  
+  button, 
+  a,
+  .clickable {
+    cursor: default !important;
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-width: 900px) and (orientation: landscape) {
+  .hero-carousel {
+    height: 250px !important;
+  }
+  
+  .modal-container {
+    max-height: 85vh !important;
+  }
+}

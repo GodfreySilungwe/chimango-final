@@ -1,0 +1,175 @@
+service: chimango-backend
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'prod'}
+  
+  # IAM Role for Lambda
+  iam:
+    role:
+      statements:
+        # DynamoDB permissions
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:BatchGetItem
+          Resource: "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/chimango_dynamoDB"
+        
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+          Resource: "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/chimango_dynamoDB/index/*"
+        
+        # S3 permissions
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+            - s3:ListBucket
+          Resource:
+            - "arn:aws:s3:::chimangofilebucket"
+            - "arn:aws:s3:::chimangofilebucket/*"
+        
+        # CloudWatch Logs
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "arn:aws:logs:${aws:region}:${aws:accountId}:*"
+  
+  # Environment variables
+  environment:
+    AWS_REGION: us-east-1
+    DYNAMODB_TABLE: chimango_dynamoDB
+    S3_BUCKET: chimangofilebucket
+    API_BASE_URL: https://gj99pm096l.execute-api.us-east-1.amazonaws.com
+    FRONTEND_URL: http://chimangofrontendwebsitebucket.s3-website-us-east-1.amazonaws.com
+    BASE_PATH: ${self:provider.stage}
+    NODE_ENV: ${self:provider.stage}
+    JWT_SECRET: ${env:JWT_SECRET}
+    JWT_EXPIRE: 7d
+    EMAIL_USER: ${env:EMAIL_USER}
+    EMAIL_PASS: ${env:EMAIL_PASS}
+    PAYCHANGU_PUBLIC_KEY: ${env:PAYCHANGU_PUBLIC_KEY}
+    PAYCHANGU_SECRET_KEY: ${env:PAYCHANGU_SECRET_KEY}
+  
+  # Lambda memory and timeout
+  memorySize: 512
+  timeout: 30
+  
+  # CORS Configuration
+  httpApi:
+    cors:
+      allowedOrigins:
+        - http://localhost:5173
+        - http://localhost:3000
+        - http://chimangofrontendwebsitebucket.s3-website-us-east-1.amazonaws.com
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+        - Accept
+        - X-Requested-With
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+
+# Lambda function definition
+functions:
+  api:
+    handler: handler.lambda
+    events:
+      - httpApi: 
+          path: /{proxy+}
+          method: ANY
+      - httpApi:
+          path: /
+          method: ANY
+    description: Chimango Tourism Backend API
+
+# Plugins
+plugins:
+  - serverless-offline
+  - serverless-dynamodb-local
+
+# Package configuration
+package:
+  exclude:
+    - node_modules/aws-sdk
+    - .git/**
+    - .gitignore
+    - README.md
+    - .env
+    - dist/**
+    - uploads/**
+
+# Local development
+custom:
+  serverless-offline:
+    httpPort: 3000
+    websocketPort: 3001
+    lambdaPort: 3002
+    stage: ${self:provider.stage}
+  
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+
+# DynamoDB table definition (optional - can also create manually)
+resources:
+  Resources:
+    ChimangoDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: chimango_dynamoDB
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: type
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: N
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: typeIndex
+            KeySchema:
+              - AttributeName: type
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: emailIndex
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
