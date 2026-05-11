@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 
 const AdminImages = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [activities, setActivities] = useState([]);
   const [selectedActivity, setSelectedActivity] = useState('');
   const [selectedActivityData, setSelectedActivityData] = useState(null);
@@ -21,8 +20,9 @@ const AdminImages = () => {
 
   const fetchActivities = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/activities`);
-      setActivities(res.data);
+      const res = await fetch(`${API_URL}/api/activities`);
+      const data = await res.json();
+      setActivities(data);
     } catch (error) {
       console.error('Error fetching activities:', error);
     }
@@ -49,11 +49,15 @@ const AdminImages = () => {
     });
 
     try {
-      const res = await axios.post(`${API_URL}/api/upload-multiple`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const res = await fetch(`${API_URL}/api/upload-multiple`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
       });
-
-      setImages(prev => [...prev, ...res.data.images]);
+      const data = await res.json();
+      setImages(prev => [...prev, ...data.images]);
       setMessage(`${files.length} image(s) uploaded successfully!`);
     } catch (error) {
       console.error('Upload error:', error);
@@ -80,10 +84,17 @@ const AdminImages = () => {
     // REPLACE all images instead of adding (clear old ones)
     const updatedImages = [...images];
     
-    await axios.put(`${API_URL}/api/activities/${selectedActivity}`, {
-      ...activity,
-      images: updatedImages,
-      mainImage: updatedImages[0]
+    await fetch(`${API_URL}/api/activities/${selectedActivity}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...activity,
+        images: updatedImages,
+        mainImage: updatedImages[0]
+      })
     });
 
     setMessage('Images replaced successfully!');
@@ -109,17 +120,29 @@ const AdminImages = () => {
     console.log('Image URL:', imageUrl);
     
     // Delete from uploads folder
-    await axios.delete(`${API_URL}/api/upload/${filename}`);
+    await fetch(`${API_URL}/api/upload/${filename}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
     // Remove from activity images array
     const updatedImages = selectedActivityData.images.filter((_, i) => i !== index);
     const newMainImage = updatedImages.length > 0 ? updatedImages[0] : '';
     
     // Update activity
-    await axios.put(`${API_URL}/api/activities/${selectedActivity}`, {
-      ...selectedActivityData,
-      images: updatedImages,
-      mainImage: newMainImage
+    await fetch(`${API_URL}/api/activities/${selectedActivity}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...selectedActivityData,
+        images: updatedImages,
+        mainImage: newMainImage
+      })
     });
     
     setMessage('Image deleted successfully!');
@@ -128,7 +151,7 @@ const AdminImages = () => {
     
   } catch (error) {
     console.error('Delete error details:', error);
-    setMessage('Failed to delete image: ' + (error.response?.data?.message || error.message));
+    setMessage('Failed to delete image: ' + error.message);
   } finally {
     setDeleting(false);
   }
@@ -136,9 +159,16 @@ const AdminImages = () => {
 
   const setAsMainImage = async (imageUrl) => {
     try {
-      await axios.put(`${API_URL}/api/activities/${selectedActivity}`, {
-        ...selectedActivityData,
-        mainImage: imageUrl
+      await fetch(`${API_URL}/api/activities/${selectedActivity}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...selectedActivityData,
+          mainImage: imageUrl
+        })
       });
       
       setMessage('Main image updated!');

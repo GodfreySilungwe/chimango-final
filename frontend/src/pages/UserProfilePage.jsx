@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
 import { API_URL } from '../config';
 
 const UserProfilePage = () => {
@@ -44,8 +43,9 @@ const UserProfilePage = () => {
   const fetchBookings = async () => {
     setLoadingBookings(true);
     try {
-      const response = await axios.get(`${API_URL}/api/custom-bookings/user/${user.id}`);
-      setBookings(response.data);
+      const response = await fetch(`${API_URL}/api/custom-bookings/user/${user.id}`);
+      const data = await response.json();
+      setBookings(data);
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
@@ -74,11 +74,16 @@ const UserProfilePage = () => {
     setError('');
     
     try {
-      const response = await axios.put(`${API_URL}/api/users/profile`, {
-        fullName: profileData.fullName,
-        phone: profileData.phone
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await fetch(`${API_URL}/api/users/profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fullName: profileData.fullName,
+          phone: profileData.phone
+        })
       });
       
       setMessage('Profile updated successfully!');
@@ -114,11 +119,16 @@ const UserProfilePage = () => {
     setError('');
     
     try {
-      await axios.post(`${API_URL}/api/users/change-password`, {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      await fetch(`${API_URL}/api/users/change-password`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
       });
       
       setMessage('Password changed successfully!');

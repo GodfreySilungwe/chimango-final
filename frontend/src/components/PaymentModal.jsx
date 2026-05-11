@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { API_URL } from '../config';
 
 const PaymentModal = ({ bookingData, onClose, onPaymentConfirmed }) => {
@@ -82,8 +81,15 @@ const PaymentModal = ({ bookingData, onClose, onPaymentConfirmed }) => {
       console.log('Sending payment request:', paymentData);
 
       // Send to backend
-      const response = await axios.post(`${API_URL}/api/payment-request`, paymentData);
-      console.log('Payment request saved:', response.data);
+      const response = await fetch(`${API_URL}/api/payment-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paymentData)
+      });
+      const data = await response.json();
+      console.log('Payment request saved:', data);
 
       // Create WhatsApp message for admin (using simple text without special formatting)
       const message = 

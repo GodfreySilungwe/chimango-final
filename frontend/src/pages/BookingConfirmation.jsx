@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
 import { API_URL } from '../config';
 
 const BookingConfirmation = () => {
@@ -25,9 +24,10 @@ const BookingConfirmation = () => {
 
       if (bookingCode) {
         try {
-          const response = await axios.get(`${API_URL}/api/custom-bookings/code/${bookingCode}`);
-          if (response.data) {
-            setBooking(response.data);
+          const response = await fetch(`${API_URL}/api/custom-bookings/code/${bookingCode}`);
+          const data = await response.json();
+          if (data) {
+            setBooking(data);
             setLoading(false);
             return;
           }

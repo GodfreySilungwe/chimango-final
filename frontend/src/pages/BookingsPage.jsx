@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import ReviewModal from '../components/ReviewModal';
 import { API_URL } from '../config';
@@ -24,11 +23,13 @@ const BookingsPage = () => {
     try {
       setLoading(true);
       
-      const tourRes = await axios.get(`${API_URL}/api/bookings/user/${user.id}`);
-      setTourBookings(tourRes.data);
+      const tourRes = await fetch(`${API_URL}/api/bookings/user/${user.id}`);
+      const tourData = await tourRes.json();
+      setTourBookings(tourData);
       
-      const activityRes = await axios.get(`${API_URL}/api/custom-bookings/user/${user.id}`);
-      setActivityBookings(activityRes.data);
+      const activityRes = await fetch(`${API_URL}/api/custom-bookings/user/${user.id}`);
+      const activityData = await activityRes.json();
+      setActivityBookings(activityData);
       
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -41,7 +42,12 @@ const BookingsPage = () => {
     if (!confirm('Are you sure you want to cancel this tour booking?')) return;
     
     try {
-      await axios.put(`${API_URL}/api/bookings/${bookingId}/cancel`);
+      await fetch(`${API_URL}/api/bookings/${bookingId}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       alert('Booking cancelled successfully');
       fetchAllBookings();
     } catch (error) {
@@ -54,7 +60,12 @@ const BookingsPage = () => {
     if (!confirm('Are you sure you want to cancel this activity booking?')) return;
     
     try {
-      await axios.put(`${API_URL}/api/custom-bookings/${bookingId}/cancel`);
+      await fetch(`${API_URL}/api/custom-bookings/${bookingId}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       alert('Booking cancelled successfully');
       fetchAllBookings();
     } catch (error) {

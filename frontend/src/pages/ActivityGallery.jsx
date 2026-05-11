@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import ActivityCard from '../components/ActivityCard';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 import { API_URL } from '../config';
@@ -31,9 +30,10 @@ const ActivityGallery = () => {
 
   const fetchActivities = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/activities`);
-      setActivities(res.data);
-      setFilteredActivities(res.data);
+      const res = await fetch(`${API_URL}/api/activities`);
+      const data = await res.json();
+      setActivities(data);
+      setFilteredActivities(data);
       setLoading(false);
     } catch (error) {
       console.error('Error:', error);

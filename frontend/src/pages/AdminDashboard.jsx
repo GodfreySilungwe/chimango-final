@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [tours, setTours] = useState([]);
   const [activities, setActivities] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -58,8 +57,9 @@ const AdminDashboard = () => {
 
   const fetchTours = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/tours`);
-      setTours(res.data);
+      const res = await fetch(`${API_URL}/api/tours`);
+      const data = await res.json();
+      setTours(data);
     } catch (error) {
       console.error('Error fetching tours:', error);
     }
@@ -67,8 +67,9 @@ const AdminDashboard = () => {
 
   const fetchActivities = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/activities`);
-      setActivities(res.data);
+      const res = await fetch(`${API_URL}/api/activities`);
+      const data = await res.json();
+      setActivities(data);
     } catch (error) {
       console.error('Error fetching activities:', error);
     }
@@ -76,8 +77,9 @@ const AdminDashboard = () => {
 
   const fetchBookings = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/custom-bookings`);
-      setBookings(res.data);
+      const res = await fetch(`${API_URL}/api/custom-bookings`);
+      const data = await res.json();
+      setBookings(data);
     } catch (error) {
       console.error('Error fetching bookings:', error);
     }
@@ -85,8 +87,9 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/users`);
-      setUsers(res.data);
+      const res = await fetch(`${API_URL}/api/users`);
+      const data = await res.json();
+      setUsers(data);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -94,8 +97,9 @@ const AdminDashboard = () => {
 
   const fetchPaymentRequests = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/payment-requests/pending`);
-      setPaymentRequests(res.data);
+      const res = await fetch(`${API_URL}/api/payment-requests/pending`);
+      const data = await res.json();
+      setPaymentRequests(data);
     } catch (error) {
       console.error('Error fetching payment requests:', error);
     }
@@ -104,7 +108,14 @@ const AdminDashboard = () => {
   const handleAddTour = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_URL}/api/tours`, newTour);
+      await fetch(`${API_URL}/api/tours`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newTour)
+      });
       setShowAddTour(false);
       fetchTours();
       setNewTour({
@@ -130,7 +141,14 @@ const AdminDashboard = () => {
   const handleAddActivity = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_URL}/api/activities`, newActivity);
+      await fetch(`${API_URL}/api/activities`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newActivity)
+      });
       setShowAddActivity(false);
       fetchActivities();
       setNewActivity({
@@ -167,11 +185,21 @@ const AdminDashboard = () => {
     
     try {
       if (deleteType === 'activity') {
-        await axios.delete(`${API_URL}/api/activities/${itemToDelete._id}`);
+        await fetch(`${API_URL}/api/activities/${itemToDelete._id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         fetchActivities();
         alert(`✅ "${itemToDelete.name}" has been deleted successfully.`);
       } else if (deleteType === 'tour') {
-        await axios.delete(`${API_URL}/api/tours/${itemToDelete._id}`);
+        await fetch(`${API_URL}/api/tours/${itemToDelete._id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         fetchTours();
         alert(`✅ "${itemToDelete.name}" has been deleted successfully.`);
       }
@@ -193,8 +221,20 @@ const AdminDashboard = () => {
     if (!confirm(`Confirm payment for ${customerName}?`)) return;
     
     try {
-      await axios.put(`${API_URL}/api/payment-requests/${paymentId}/verify`);
-      await axios.put(`${API_URL}/api/custom-bookings/confirm/${bookingCode}`);
+      await fetch(`${API_URL}/api/payment-requests/${paymentId}/verify`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      await fetch(`${API_URL}/api/custom-bookings/confirm/${bookingCode}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       alert(`Payment verified for ${customerName}`);
       fetchPaymentRequests();
       fetchBookings();

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { API_URL } from '../config';
 
 const PaymentPage = () => {
@@ -49,9 +48,10 @@ const PaymentPage = () => {
 
   const fetchBookingData = async (bookingCode) => {
     try {
-      const response = await axios.get(`${API_URL}/api/custom-bookings/code/${bookingCode}`);
-      if (response.data) {
-        const booking = response.data;
+      const response = await fetch(`${API_URL}/api/custom-bookings/code/${bookingCode}`);
+      const data = await response.json();
+      if (data) {
+        const booking = data;
         const paymentData = {
           bookingCode: booking.bookingCode,
           totalPrice: booking.totalPrice,
@@ -108,7 +108,13 @@ const PaymentPage = () => {
         status: 'pending'
       };
 
-      await axios.post(`${API_URL}/api/payment-request`, paymentData);
+      await fetch(`${API_URL}/api/payment-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paymentData)
+      });
       
       alert(`✅ Payment request submitted successfully!\n\nBooking Code: ${bookingData.bookingCode}\nReference: ${paymentReference}\nAmount: MWK ${Math.round(bookingData.totalPrice * exchangeRate).toLocaleString()}\n\nYour booking is pending admin approval.`);
       

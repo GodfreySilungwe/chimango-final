@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ActivityGallery from "./pages/ActivityGallery";
 import AdminImages from './pages/AdminImages';
+import CustomBookingsPage from './pages/CustomBookingsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import BookingConfirmation from './pages/BookingConfirmation';
@@ -43,6 +44,7 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/images" element={<AdminImages />} />
+              <Route path="/custom-booking" element={<CustomBookingsPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/booking-confirmation" element={<BookingConfirmation />} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 
 const CustomBookingsPage = () => {
   const { user } = useAuth();
@@ -17,8 +17,9 @@ const CustomBookingsPage = () => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/custom-bookings/user/${user.id}`);
-      setBookings(response.data);
+      const response = await fetch(`${API_URL}/api/custom-bookings/user/${user.id}`);
+      const data = await response.json();
+      setBookings(data);
       setError('');
     } catch (err) {
       console.error('Error fetching bookings:', err);
@@ -32,7 +33,12 @@ const CustomBookingsPage = () => {
     if (!confirm('Are you sure you want to cancel this booking?')) return;
     
     try {
-      await axios.put(`http://localhost:5000/api/custom-bookings/${bookingId}/cancel`);
+      await fetch(`${API_URL}/api/custom-bookings/${bookingId}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       alert('Booking cancelled successfully');
       fetchBookings();
     } catch (err) {

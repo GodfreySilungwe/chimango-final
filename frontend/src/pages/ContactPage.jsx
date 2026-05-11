@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { API_URL } from '../config';
 
 const ContactPage = () => {
@@ -23,7 +22,13 @@ const ContactPage = () => {
     setError('');
     
     try {
-      await axios.post(`${API_URL}/api/contact`, formData);
+      await fetch(`${API_URL}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
       setSuccess(true);
       setFormData({ name: '', email: '', subject: '', message: '' });
       setTimeout(() => setSuccess(false), 5000);

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import axios from 'axios';
 import { API_URL } from '../config';
 
 const ResetPasswordPage = () => {
@@ -31,12 +30,19 @@ const ResetPasswordPage = () => {
 
   const verifyToken = async (token) => {
     try {
-      const res = await axios.post(`${API_URL}/api/verify-reset-token`, { token });
-      if (res.data.message === 'Token valid') {
+      const res = await fetch(`${API_URL}/api/verify-reset-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token })
+      });
+      const data = await res.json();
+      if (data.message === 'Token valid') {
         setTokenValid(true);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid or expired reset link');
+      setError(err.message || 'Invalid or expired reset link');
     } finally {
       setVerifying(false);
     }
@@ -63,13 +69,19 @@ const ResetPasswordPage = () => {
       const params = new URLSearchParams(location.search);
       const token = params.get('token');
       
-      await axios.post(`${API_URL}/api/reset-password`, { token, newPassword: password });
+      await fetch(`${API_URL}/api/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token, newPassword: password })
+      });
       setMessage('Password reset successfully! Redirecting to login...');
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reset password');
+      setError(err.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }

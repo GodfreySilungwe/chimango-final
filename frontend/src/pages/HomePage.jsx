@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { API_URL } from '../config';
 import './HomePage.css';
 
@@ -53,8 +52,9 @@ const HomePage = () => {
 
   const fetchActivities = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/activities`);
-      setActivities(res.data.slice(0, 6));
+      const res = await fetch(`${API_URL}/api/activities`);
+      const data = await res.json();
+      setActivities(data.slice(0, 6));
       setLoading(false);
     } catch (error) {
       console.error('Error fetching activities:', error);

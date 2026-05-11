@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 
 const TourDetailPage = () => {
   const { id } = useParams();
@@ -19,10 +19,11 @@ const TourDetailPage = () => {
 
   const fetchTour = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/tours/${id}`);
-      setTour(res.data);
-      if (res.data.startDate) {
-        setTravelDate(res.data.startDate.split('T')[0]);
+      const res = await fetch(`${API_URL}/api/tours/${id}`);
+      const data = await res.json();
+      setTour(data);
+      if (data.startDate) {
+        setTravelDate(data.startDate.split('T')[0]);
       }
     } catch (error) {
       console.error('Error fetching tour:', error);
@@ -41,19 +42,25 @@ const TourDetailPage = () => {
   try {
     console.log('User object:', user); // Debug: see what user contains
     
-    await axios.post('http://localhost:5000/api/bookings', {
-      userId: user.id,  // Make sure this is user.id (not user._id)
-      tourId: id,
-      travelDate,
-      numTravelers,
-      promoCode: ''
+    await fetch(`${API_URL}/api/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userId: user.id,
+        tourId: id,
+        travelDate,
+        numTravelers,
+        promoCode: ''
+      })
     });
     
     alert('✅ Booking confirmed! Check your bookings page.');
     navigate('/bookings');
   } catch (error) {
     console.error('Booking error:', error);
-    alert(error.response?.data?.message || 'Booking failed. Please try again.');
+    alert('Booking failed. Please try again.');
   } finally {
     setBookingLoading(false);
   }

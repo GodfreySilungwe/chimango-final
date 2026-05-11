@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { API_URL } from '../config';
 import ImageGalleryModal from './ImageGalleryModal';
 
@@ -76,9 +75,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
       paymentMethod: nationality === 'international' ? 'pay_on_arrival' : null
     };
 
-    const response = await axios.post(`${API_URL}/api/custom-bookings`, bookingData);
+    const response = await fetch(`${API_URL}/api/custom-bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(bookingData)
+    });
+    const data = await response.json();
     return {
-      booking: response.data.booking || response.data,
+      booking: data.booking || data,
       bookingCode: newBookingCode,
       totalPrice: totalPrice
     };
@@ -136,7 +142,13 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         paymentMethod: 'pay_on_arrival'
       };
 
-      const responsePromise = axios.post(`${API_URL}/api/custom-bookings`, bookingData);
+      const responsePromise = fetch(`${API_URL}/api/custom-bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bookingData)
+      });
       
       setShowInternationalConfirm(false);
       setShowBookingForm(false);
@@ -206,7 +218,13 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         paymentMethod: null
       };
 
-      const response = await axios.post(`${API_URL}/api/custom-bookings`, bookingData);
+      const response = await fetch(`${API_URL}/api/custom-bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bookingData)
+      });
       
       const paymentData = {
         bookingCode: newBookingCode,

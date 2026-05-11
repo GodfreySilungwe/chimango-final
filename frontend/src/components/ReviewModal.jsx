@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { API_URL } from '../config';
 
 const ReviewModal = ({ activity, booking, onClose, onReviewSubmitted }) => {
@@ -23,18 +22,24 @@ const ReviewModal = ({ activity, booking, onClose, onReviewSubmitted }) => {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
       
-      await axios.post(`${API_URL}/api/reviews`, {
-        userId: user.id,
-        activityId: activity._id,
-        bookingId: booking._id,
-        rating,
-        comment
+      await fetch(`${API_URL}/api/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          activityId: activity._id,
+          bookingId: booking._id,
+          rating,
+          comment
+        })
       });
       
       onReviewSubmitted();
       onClose();
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to submit review');
+      setError(error.message || 'Failed to submit review');
     } finally {
       setSubmitting(false);
     }

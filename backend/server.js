@@ -205,6 +205,10 @@ app.delete('api/activities/:id', async (req, res) => {
 app.post('api/users/register', async (req, res) => {
   try {
     const { fullName, email, password, phone } = req.body;
+
+    if (!email || !password || !fullName) {
+      return res.status(400).json({ message: 'fullName, email and password are required' });
+    }
     
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
@@ -252,6 +256,10 @@ app.post('api/users/register', async (req, res) => {
 app.post('api/users/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
     
     const user = await User.findByEmail(email);
     if (!user) {

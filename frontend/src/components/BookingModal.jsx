@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import { API_URL } from '../config';
 
 const BookingModal = ({ activity, onClose }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [numberOfDays, setNumberOfDays] = useState(1);
   const [numberOfPeople, setNumberOfPeople] = useState(1);
   const [selectedDate, setSelectedDate] = useState('');
@@ -28,17 +28,24 @@ const BookingModal = ({ activity, onClose }) => {
     setIsBooking(true);
     
     try {
-      const response = await axios.post('http://localhost:5000/api/custom-bookings', {
-        userId: user.id,
-        selectedActivities: [{
-          activity: activity._id,
-          numberOfDays,
-          numberOfPeople,
-          totalPrice: (activity.pricePerDay * numberOfDays) + (activity.pricePerPerson * numberOfPeople),
-          selectedDate
-        }],
-        totalPrice,
-        specialRequests: ''
+      const response = await fetch(`${API_URL}/api/custom-bookings`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          selectedActivities: [{
+            activity: activity._id,
+            numberOfDays,
+            numberOfPeople,
+            totalPrice: (activity.pricePerDay * numberOfDays) + (activity.pricePerPerson * numberOfPeople),
+            selectedDate
+          }],
+          totalPrice,
+          specialRequests: ''
+        })
       });
       
       setBookingSuccess(true);

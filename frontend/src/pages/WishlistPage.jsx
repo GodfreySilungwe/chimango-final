@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 
@@ -16,8 +15,9 @@ const WishlistPage = () => {
 
   const fetchWishlist = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/wishlist/${user.id}`);
-      setWishlist(res.data);
+      const res = await fetch(`${API_URL}/api/wishlist/${user.id}`);
+      const data = await res.json();
+      setWishlist(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching wishlist:', error);
@@ -29,7 +29,9 @@ const WishlistPage = () => {
     if (!confirm('Remove this activity from your wishlist?')) return;
     
     try {
-      await axios.delete(`${API_URL}/api/wishlist/${user.id}/${activityId}`);
+      await fetch(`${API_URL}/api/wishlist/${user.id}/${activityId}`, {
+        method: 'DELETE'
+      });
       fetchWishlist();
       alert('Removed from wishlist');
     } catch (error) {
