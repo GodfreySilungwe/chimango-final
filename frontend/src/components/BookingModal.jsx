@@ -37,7 +37,7 @@ const BookingModal = ({ activity, onClose }) => {
         body: JSON.stringify({
           userId: user.id,
           selectedActivities: [{
-            activity: activity._id,
+            activity: activity._id || activity.id,
             numberOfDays,
             numberOfPeople,
             totalPrice: (activity.pricePerDay * numberOfDays) + (activity.pricePerPerson * numberOfPeople),

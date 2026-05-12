@@ -49,10 +49,14 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
   const saveBookingToDatabase = async () => {
     const newBookingCode = 'CHM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+    console.log('Activity object:', activity);
+    console.log('Activity ID:', activity._id || activity.id);
+    console.log('Selected date:', selectedDate);
+
     const bookingData = {
       userId: user.id,
       selectedActivities: [{
-        activity: activity._id,
+        activity: activity._id || activity.id,
         numberOfDays,
         numberOfPeople,
         totalPrice: totalPrice,
@@ -128,10 +132,14 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
     try {
       const newBookingCode = 'CHM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+      console.log('Activity object:', activity);
+      console.log('Activity ID:', activity._id || activity.id);
+      console.log('Selected date:', selectedDate);
+
       const bookingData = {
         userId: user.id,
         selectedActivities: [{
-          activity: activity._id,
+          activity: activity._id || activity.id,
           numberOfDays,
           numberOfPeople,
           totalPrice: totalPrice,
@@ -213,10 +221,14 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
     try {
       const newBookingCode = 'CHM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+      console.log('Activity object:', activity);
+      console.log('Activity ID:', activity._id || activity.id);
+      console.log('Selected date:', selectedDate);
+
       const bookingData = {
         userId: user.id,
         selectedActivities: [{
-          activity: activity._id,
+          activity: activity._id || activity.id,
           numberOfDays,
           numberOfPeople,
           totalPrice: totalPrice,
