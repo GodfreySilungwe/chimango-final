@@ -137,9 +137,10 @@ const BookingConfirmation = () => {
     );
   }
 
-  const isPending = booking.status === 'pending';
   const isConfirmed = booking.status === 'confirmed';
   const isCancelled = booking.status === 'cancelled';
+  const isCompleted = booking.status === 'completed';
+  const isPending = !booking.status || booking.status === 'pending';
 
   const getStatusConfig = () => {
     if (isConfirmed) {
@@ -147,6 +148,9 @@ const BookingConfirmation = () => {
     }
     if (isPending) {
       return { icon: '⏳', title: 'Booking Request Sent!', message: 'Your booking has been submitted and is awaiting admin approval.', color: '#f39c12' };
+    }
+    if (isCompleted) {
+      return { icon: '✅', title: 'Booking Completed!', message: 'Your booking has been completed successfully.', color: '#2ecc71' };
     }
     return { icon: '❌', title: 'Booking Cancelled', message: 'This booking has been cancelled.', color: '#e74c3c' };
   };
@@ -224,7 +228,7 @@ const BookingConfirmation = () => {
               </div>
               <div className="detail-item">
                 <span className="detail-label">Status</span>
-                <span className={`status-badge ${booking.status}`}>{booking.status}</span>
+                <span className={`status-badge ${booking.status || 'pending'}`}>{booking.status || 'pending'}</span>
               </div>
             </div>
           </div>

@@ -106,8 +106,8 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
       return;
     }
 
-    if (airportPickup && (!flightNumber || !arrivalTime)) {
-      alert('Please provide flight number and arrival time for airport pickup');
+    if (airportPickup && !arrivalTime) {
+      alert('Please provide arrival time for airport pickup');
       return;
     }
 
@@ -142,22 +142,24 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         paymentMethod: 'pay_on_arrival'
       };
 
-      const responsePromise = fetch(`${API_URL}/api/custom-bookings`, {
+      const response = await fetch(`${API_URL}/api/custom-bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(bookingData)
       });
-      
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create booking');
+      }
+
+      const createdBooking = data.booking || data;
+      sessionStorage.setItem('lastBooking', JSON.stringify(createdBooking));
       setShowInternationalConfirm(false);
       setShowBookingForm(false);
-      
       window.location.href = `/booking-confirmation?bookingCode=${newBookingCode}`;
-      
-      responsePromise.catch(error => {
-        console.error('Background booking error:', error);
-      });
       
     } catch (error) {
       console.error('Booking error:', error);
@@ -182,8 +184,8 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
       return;
     }
 
-    if (airportPickup && (!flightNumber || !arrivalTime)) {
-      alert('Please provide flight number and arrival time for airport pickup');
+    if (airportPickup && !arrivalTime) {
+      alert('Please provide arrival time for airport pickup');
       return;
     }
 
@@ -225,7 +227,12 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         },
         body: JSON.stringify(bookingData)
       });
-      
+
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to create booking');
+      }
+
       const paymentData = {
         bookingCode: newBookingCode,
         totalPrice: totalPrice,
@@ -236,7 +243,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         },
         activityName: activity.name,
         selectedDate: selectedDate,
-        booking: response.data.booking || response.data
+        booking: json.booking || json
       };
       
       sessionStorage.setItem('pendingPayment', JSON.stringify(paymentData));
@@ -454,7 +461,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                     <div style={{ marginBottom: '20px' }}><label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" checked={airportPickup} onChange={(e) => setAirportPickup(e.target.checked)} /><span>✈️ Add Airport Pickup Service <strong>(USD 7.50 extra)</strong></span></label></div>
                     {airportPickup && (
                       <div style={{ backgroundColor: '#f0f7ff', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-                        <div style={{ marginBottom: '10px' }}><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Flight Number</label><input type="text" value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} placeholder="e.g., ET 1234" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                        <div style={{ marginBottom: '10px' }}><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Flight Number (Optional)</label><input type="text" value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} placeholder="e.g., ET 1234" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
                         <div><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Arrival Time</label><input type="time" value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
                       </div>
                     )}
