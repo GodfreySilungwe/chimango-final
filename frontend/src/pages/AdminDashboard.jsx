@@ -53,6 +53,8 @@ const AdminDashboard = () => {
     maxPeople: 20,
     status: 'active'
   });
+  const [newActivityMainImage, setNewActivityMainImage] = useState(null);
+  const [newActivityImages, setNewActivityImages] = useState([]);
 
   useEffect(() => {
     if (user?.role !== 'admin') return;
@@ -164,22 +166,50 @@ const AdminDashboard = () => {
   const handleAddActivity = async (e) => {
     e.preventDefault();
     try {
-      await fetch(`${API_URL}/api/activities`, {
+      const formData = new FormData();
+      Object.entries(newActivity).forEach(([key, value]) => {
+        formData.append(key, value != null ? value.toString() : '');
+      });
+
+      if (newActivityMainImage) {
+        formData.append('mainImage', newActivityMainImage);
+      }
+
+      newActivityImages.forEach((imageFile) => {
+        formData.append('images', imageFile);
+      });
+
+      const response = await fetch(`${API_URL}/api/activities/upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newActivity)
+        body: formData
       });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        console.error('Activity upload failed:', errorBody);
+        alert(`❌ Failed to add activity: ${errorBody.message || response.statusText}`);
+        return;
+      }
+
       setShowAddActivity(false);
-      fetchActivities();
+      await fetchActivities();
       resetActivityForm();
       alert('✅ Activity added successfully!');
     } catch (error) {
       console.error('Error adding activity:', error);
       alert('❌ Failed to add activity');
     }
+  };
+
+  const handleMainImageChange = (e) => {
+    setNewActivityMainImage(e.target.files?.[0] || null);
+  };
+
+  const handleActivityImagesChange = (e) => {
+    setNewActivityImages(Array.from(e.target.files || []));
   };
 
   const confirmDelete = (item, type) => {
@@ -269,6 +299,8 @@ const AdminDashboard = () => {
       maxPeople: 20,
       status: 'active'
     });
+    setNewActivityMainImage(null);
+    setNewActivityImages([]);
   };
 
   if (user?.role !== 'admin') {
@@ -450,6 +482,23 @@ const AdminDashboard = () => {
                 </select>
                 <input type="number" placeholder="Max People" value={newActivity.maxPeople} onChange={(e) => setNewActivity({...newActivity, maxPeople: parseInt(e.target.value)})} />
               </div>
+
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr', gap: '16px', marginTop: '16px' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  Primary Image
+                  <input type="file" accept="image/*" onChange={handleMainImageChange} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  Gallery Images
+                  <input type="file" accept="image/*" multiple onChange={handleActivityImagesChange} />
+                </label>
+                {newActivityImages.length > 0 && (
+                  <div style={{ color: '#444', fontSize: '0.9rem' }}>
+                    Selected images: {newActivityImages.map((file) => file.name).join(', ')}
+                  </div>
+                )}
+              </div>
+
               <textarea placeholder="Description" value={newActivity.description} onChange={(e) => setNewActivity({...newActivity, description: e.target.value})} rows="3" />
               <button type="submit" className="btn-save">Save Activity</button>
             </form>

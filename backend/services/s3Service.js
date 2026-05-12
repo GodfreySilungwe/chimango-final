@@ -6,18 +6,13 @@ const path = require("path");
 const BUCKET_NAME = process.env.S3_BUCKET || "chimangofilebucket";
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
 
-const awsCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY ? {
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    sessionToken: process.env.AWS_SESSION_TOKEN
-  }
-} : {};
-
+// Use IAM role for Lambda - no hardcoded credentials needed
+// Remove the awsCredentials object entirely for Lambda
 const s3Client = new S3Client({
-  region: AWS_REGION,
-  ...awsCredentials
+  region: AWS_REGION
+  // No credentials - Lambda IAM role handles authentication
 });
+
 /**
  * Upload a file to S3
  * @param {Buffer} fileBuffer - The file buffer/content
@@ -37,8 +32,8 @@ async function uploadFile(fileBuffer, fileName, mimeType, folder = "uploads") {
       Bucket: BUCKET_NAME,
       Key: key,
       Body: fileBuffer,
-      ContentType: mimeType,
-      ACL: "public-read"
+      ContentType: mimeType
+      // REMOVED: ACL: "public-read" - bucket doesn't support ACLs
     };
     
     await s3Client.send(new PutObjectCommand(params));

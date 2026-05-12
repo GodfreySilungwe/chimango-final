@@ -153,14 +153,14 @@ const ActivityGallery = () => {
         )}
 
         {/* Stats Bar */}
-        <div className="stats-bar">
-          <span className="stat-item">
-            <span className="stat-number">{filteredActivities.length}</span>
-            <span className="stat-label">Activities Found</span>
+        <div className="gallery-stats-bar">
+          <span className="gallery-stat-item">
+            <span className="gallery-stat-number">{filteredActivities.length}</span>
+            <span className="gallery-stat-label">Activities Found</span>
           </span>
-          <span className="stat-item">
-            <span className="stat-number">{activities.length}</span>
-            <span className="stat-label">Total Activities</span>
+          <span className="gallery-stat-item">
+            <span className="gallery-stat-number">{activities.length}</span>
+            <span className="gallery-stat-label">Total Activities</span>
           </span>
         </div>
 

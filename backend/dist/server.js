@@ -194,6 +194,67 @@ app.post('/api/activities', async (req, res) => {
   }
 });
 
+app.post('/api/activities/upload', upload.fields([
+  { name: 'mainImage', maxCount: 1 },
+  { name: 'images', maxCount: 10 }
+]), async (req, res) => {
+  try {
+    const raw = req.body || {};
+    const parseNumber = (value, fallback = 0) => {
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? fallback : parsed;
+    };
+
+    const activityData = {
+      name: raw.name || '',
+      location: raw.location || '',
+      region: raw.region || 'Southern Region',
+      description: raw.description || '',
+      pricePerDay: parseNumber(raw.pricePerDay, 0),
+      pricePerPerson: parseNumber(raw.pricePerPerson, 0),
+      durationHours: parseNumber(raw.durationHours, 0),
+      category: raw.category || 'hiking',
+      difficulty: raw.difficulty || 'easy',
+      minPeople: parseNumber(raw.minPeople, 1),
+      maxPeople: parseNumber(raw.maxPeople, 20),
+      status: raw.status || 'active',
+      isActive: raw.status !== 'inactive'
+    };
+
+    if (req.files?.mainImage?.[0]) {
+      const mainImageFile = req.files.mainImage[0];
+      const uploadedMainImage = await s3Service.uploadFile(
+        mainImageFile.buffer,
+        mainImageFile.originalname,
+        mainImageFile.mimetype,
+        'activities'
+      );
+      activityData.mainImage = uploadedMainImage.url;
+    }
+
+    const uploadedGallery = [];
+    if (req.files?.images?.length) {
+      for (const imageFile of req.files.images) {
+        const uploadedImage = await s3Service.uploadFile(
+          imageFile.buffer,
+          imageFile.originalname,
+          imageFile.mimetype,
+          'activities'
+        );
+        uploadedGallery.push(uploadedImage.url);
+      }
+    }
+
+    activityData.images = uploadedGallery;
+
+    const activity = await Activity.create(activityData);
+    res.status(201).json(activity);
+  } catch (error) {
+    console.error('Error creating activity with upload:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 app.put('/api/activities/:id', async (req, res) => {
   try {
     const activity = await Activity.update(req.params.id, req.body);
@@ -333,6 +394,268 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     res.status(401).json({ message: 'Invalid token' });
+  }
+});
+
+// ==================== CUSTOM BOOKING ROUTES ====================
+
+// Helper function to parse request body (handles Buffer from API Gateway)
+const parseBody = (req) => {
+  let body = req.body;
+  if (Buffer.isBuffer(body)) {
+    const bodyString = body.toString('utf-8');
+    try {
+      body = JSON.parse(bodyString);
+      console.log('Parsed body from buffer:', body);
+    } catch (e) {
+      console.log('Could not parse buffer:', e.message);
+    }
+  }
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+      console.log('Parsed body from string:', body);
+    } catch (e) {
+      console.log('Could not parse string body:', e.message);
+    }
+  }
+  return body;
+};
+
+// Get custom bookings by user ID
+app.get('/api/custom-bookings/user/:userId', async (req, res) => {
+  console.log('=== GET CUSTOM BOOKINGS BY USER ===');
+  console.log('UserId:', req.params.userId);
+  
+  try {
+    const bookings = await CustomBooking.findByUserId(req.params.userId);
+    console.log(`Found ${bookings.length} bookings for user`);
+    res.json(bookings);
+  } catch (error) {
+    console.error('Error fetching custom bookings:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get all custom bookings (admin)
+app.get('/api/custom-bookings', async (req, res) => {
+  console.log('=== GET ALL CUSTOM BOOKINGS ===');
+  
+  try {
+    const bookings = await CustomBooking.find();
+    res.json(bookings);
+  } catch (error) {
+    console.error('Error fetching all custom bookings:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get custom booking by booking code
+app.get('/api/custom-bookings/code/:bookingCode', async (req, res) => {
+  console.log('=== GET CUSTOM BOOKING BY CODE ===');
+  console.log('BookingCode:', req.params.bookingCode);
+  
+  try {
+    const booking = await CustomBooking.findByBookingCode(req.params.bookingCode);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    res.json(booking);
+  } catch (error) {
+    console.error('Error fetching booking by code:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create a new custom booking
+app.post('/api/custom-bookings', async (req, res) => {
+  console.log('=== CREATE CUSTOM BOOKING ===');
+  
+  // Parse body (handles Buffer from API Gateway)
+  const body = parseBody(req);
+  console.log('Request body after parsing:', body);
+  
+  try {
+    const { 
+      userId, 
+      selectedActivities, 
+      totalPrice, 
+      specialRequests, 
+      airportPickup, 
+      flightNumber, 
+      arrivalTime, 
+      personalDetails, 
+      nationality, 
+      paymentMethod 
+    } = body;
+    
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+    
+    if (!selectedActivities || !selectedActivities.length) {
+      return res.status(400).json({ message: 'selectedActivities is required' });
+    }
+    
+    // Validate each activity
+    for (const activity of selectedActivities) {
+      if (!activity.activity || !activity.selectedDate) {
+        return res.status(400).json({ message: 'activity ID and selectedDate are required' });
+      }
+    }
+    
+    const booking = await CustomBooking.create({
+      userId,
+      selectedActivities: selectedActivities.map(act => ({
+        activity: act.activity,
+        numberOfDays: act.numberOfDays,
+        numberOfPeople: act.numberOfPeople,
+        totalPrice: act.totalPrice,
+        selectedDate: new Date(act.selectedDate).toISOString()
+      })),
+      totalPrice,
+      specialRequests: specialRequests || '',
+      airportPickup: airportPickup || false,
+      flightNumber: flightNumber || '',
+      arrivalTime: arrivalTime || '',
+      personalDetails: personalDetails || {},
+      nationality: nationality || 'malawian',
+      paymentMethod: paymentMethod || null,
+      status: 'pending',
+      paymentStatus: 'pending'
+    });
+    
+    // Send confirmation email (don't await - fire and forget)
+    try {
+      await sendBookingConfirmationEmail(
+        personalDetails?.email,
+        personalDetails?.fullName,
+        booking
+      );
+      console.log('Booking confirmation email sent to:', personalDetails?.email);
+    } catch (emailError) {
+      console.error('Failed to send booking email:', emailError);
+    }
+    
+    res.status(201).json({ success: true, booking });
+  } catch (error) {
+    console.error('Custom booking error:', error);
+    res.status(500).json({ 
+      message: error.message,
+      errorType: error.name
+    });
+  }
+});
+
+// Cancel a custom booking
+app.put('/api/custom-bookings/:id/cancel', async (req, res) => {
+  console.log('=== CANCEL CUSTOM BOOKING ===');
+  console.log('Booking ID:', req.params.id);
+  
+  try {
+    const booking = await CustomBooking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    
+    if (booking.status === 'cancelled') {
+      return res.status(400).json({ message: 'Booking already cancelled' });
+    }
+    
+    const updated = await CustomBooking.update(req.params.id, { status: 'cancelled' });
+    res.json({ message: 'Booking cancelled successfully', booking: updated });
+  } catch (error) {
+    console.error('Cancel error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Confirm a custom booking (admin)
+app.put('/api/custom-bookings/confirm/:bookingCode', async (req, res) => {
+  console.log('=== CONFIRM CUSTOM BOOKING ===');
+  console.log('Booking Code:', req.params.bookingCode);
+  
+  try {
+    const booking = await CustomBooking.findByBookingCode(req.params.bookingCode);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    
+    const updated = await CustomBooking.update(booking.id, { 
+      status: 'confirmed', 
+      paymentStatus: 'paid' 
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('Error confirming booking:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Check availability
+app.post('/api/check-availability', async (req, res) => {
+  console.log('=== CHECK AVAILABILITY ===');
+  
+  // Parse body (handles Buffer from API Gateway)
+  const body = parseBody(req);
+  console.log('Request body after parsing:', body);
+  
+  try {
+    const { activityId, selectedDate } = body;
+    
+    if (!activityId || !selectedDate) {
+      return res.status(400).json({ message: 'activityId and selectedDate are required' });
+    }
+    
+    const bookings = await CustomBooking.find({ status: 'confirmed' });
+    let totalPeopleBooked = 0;
+    
+    bookings.forEach(booking => {
+      booking.selectedActivities.forEach(activity => {
+        if (activity.activity === activityId && 
+            new Date(activity.selectedDate).toDateString() === new Date(selectedDate).toDateString()) {
+          totalPeopleBooked += activity.numberOfPeople;
+        }
+      });
+    });
+    
+    const activity = await Activity.findById(activityId);
+    const maxCapacity = activity?.maxPeople || 20;
+    const availableSpots = maxCapacity - totalPeopleBooked;
+    
+    res.json({
+      available: availableSpots > 0,
+      availableSpots,
+      totalBooked: totalPeopleBooked,
+      maxCapacity,
+      message: availableSpots > 0 
+        ? `${availableSpots} spot(s) available` 
+        : 'Fully booked'
+    });
+  } catch (error) {
+    console.error('Availability check error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update custom booking (general update)
+app.put('/api/custom-bookings/:id', async (req, res) => {
+  console.log('=== UPDATE CUSTOM BOOKING ===');
+  console.log('Booking ID:', req.params.id);
+  
+  // Parse body (handles Buffer from API Gateway)
+  const body = parseBody(req);
+  console.log('Update data:', body);
+  
+  try {
+    const updated = await CustomBooking.update(req.params.id, body);
+    if (!updated) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    res.json(updated);
+  } catch (error) {
+    console.error('Update error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

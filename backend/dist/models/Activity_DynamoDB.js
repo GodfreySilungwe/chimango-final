@@ -20,6 +20,7 @@ const Activity = {
       durationHours: activityData.durationHours,
       category: activityData.category,
       difficulty: activityData.difficulty || 'moderate',
+      status: activityData.status || 'active',
       images: activityData.images || [],
       mainImage: activityData.mainImage || '',
       whatToBring: activityData.whatToBring || [],
@@ -53,24 +54,29 @@ const Activity = {
 
   // Get all activities
   async find(query = {}) {
-    const allActivities = await db.queryByType('ACTIVITY');
-    
-    // Filter by category if provided
+    let filteredActivities = await db.queryByType('ACTIVITY');
+
     if (query.category) {
-      return allActivities.filter(a => a.category === query.category);
+      filteredActivities = filteredActivities.filter(a => a.category === query.category);
     }
-    
-    // Filter by region if provided
+
     if (query.region) {
-      return allActivities.filter(a => a.region === query.region);
+      filteredActivities = filteredActivities.filter(a => a.region === query.region);
     }
-    
-    // Filter by active status
+
+    if (query.difficulty) {
+      filteredActivities = filteredActivities.filter(a => a.difficulty === query.difficulty);
+    }
+
     if (query.isActive !== undefined) {
-      return allActivities.filter(a => a.isActive === query.isActive);
+      filteredActivities = filteredActivities.filter(a => a.isActive === query.isActive);
     }
-    
-    return allActivities;
+
+    if (query.status) {
+      filteredActivities = filteredActivities.filter(a => a.status === query.status);
+    }
+
+    return filteredActivities;
   },
 
   // Search activities
