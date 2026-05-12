@@ -56,7 +56,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         numberOfDays,
         numberOfPeople,
         totalPrice: totalPrice,
-        selectedDate: new Date(selectedDate)
+        selectedDate: selectedDate // Send as string, not Date object
       }],
       totalPrice: totalPrice,
       specialRequests: personalDetails.specialRequests,
@@ -82,7 +82,19 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
       },
       body: JSON.stringify(bookingData)
     });
-    const data = await response.json();
+    
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      throw new Error('Server returned invalid response');
+    }
+
+    if (!response.ok) {
+      throw new Error(data.message || `Server error: ${response.status}`);
+    }
+
     return {
       booking: data.booking || data,
       bookingCode: newBookingCode,
@@ -123,7 +135,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
           numberOfDays,
           numberOfPeople,
           totalPrice: totalPrice,
-          selectedDate: new Date(selectedDate)
+          selectedDate: selectedDate // Send as string, not Date object
         }],
         totalPrice: totalPrice,
         specialRequests: personalDetails.specialRequests,
@@ -150,9 +162,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         body: JSON.stringify(bookingData)
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Server returned invalid response');
+      }
+
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create booking');
+        throw new Error(data.message || `Server error: ${response.status}`);
       }
 
       const createdBooking = data.booking || data;
@@ -201,7 +220,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
           numberOfDays,
           numberOfPeople,
           totalPrice: totalPrice,
-          selectedDate: new Date(selectedDate)
+          selectedDate: selectedDate // Send as string, not Date object
         }],
         totalPrice: totalPrice,
         specialRequests: personalDetails.specialRequests,
@@ -228,9 +247,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         body: JSON.stringify(bookingData)
       });
 
-      const json = await response.json();
+      let json;
+      try {
+        json = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Server returned invalid response');
+      }
+
       if (!response.ok) {
-        throw new Error(json.message || 'Failed to create booking');
+        throw new Error(json.message || `Server error: ${response.status}`);
       }
 
       const paymentData = {

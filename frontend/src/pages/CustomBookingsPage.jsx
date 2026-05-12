@@ -177,7 +177,17 @@ const CustomBookingsPage = () => {
         body: JSON.stringify(bookingData)
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Server returned invalid response');
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || `Server error: ${response.status}`);
+      }
       console.log('Response data:', data);
 
       if (!response.ok) {
