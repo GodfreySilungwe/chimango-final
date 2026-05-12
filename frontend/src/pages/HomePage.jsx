@@ -168,43 +168,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Stats Bar */}
-      <div className="stats-bar">
-        <div className="stats-container">
-          <div className="stat-item">
-            <div className="stat-icon">🏆</div>
-            <div className="stat-info">
-              <div className="stat-number">12+</div>
-              <div className="stat-label">Years Experience</div>
-            </div>
-          </div>
-          <div className="stat-divider"></div>
-          <div className="stat-item">
-            <div className="stat-icon">🌍</div>
-            <div className="stat-info">
-              <div className="stat-number">50+</div>
-              <div className="stat-label">Destinations</div>
-            </div>
-          </div>
-          <div className="stat-divider"></div>
-          <div className="stat-item">
-            <div className="stat-icon">👥</div>
-            <div className="stat-info">
-              <div className="stat-number">5,000+</div>
-              <div className="stat-label">Happy Travelers</div>
-            </div>
-          </div>
-          <div className="stat-divider"></div>
-          <div className="stat-item">
-            <div className="stat-icon">⭐</div>
-            <div className="stat-info">
-              <div className="stat-number">4.9</div>
-              <div className="stat-label">Rating</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Welcome Section */}
       <section className="welcome-section" style={{
         padding: '5rem 0',

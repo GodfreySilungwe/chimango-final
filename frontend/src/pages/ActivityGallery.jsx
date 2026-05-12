@@ -205,65 +205,54 @@ const ActivityGallery = () => {
         {/* Filters Section */}
         {showFilters && (
           <div className="filters-section">
-            <div className="filter-group">
-              <label className="filter-label">
-                <span className="filter-icon">🏷️</span> Category
-              </label>
-              <div className="filter-options">
-                {categories.map(cat => (
-                  <button
-                    key={cat.value}
-                    className={`filter-btn ${selectedCategory === cat.value ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory(cat.value)}
+            <div className="filter-panel">
+              <div className="compact-filter">
+                <label className="compact-filter-label">
+                  <span className="filter-icon">🏷️</span> Category
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="compact-filter-select"
                   >
-                    <span className="btn-icon">{cat.icon}</span>
-                    {cat.label}
-                  </button>
-                ))}
+                    {categories.map(cat => (
+                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="compact-filter-label">
+                  <span className="filter-icon">📍</span> Region
+                  <select
+                    value={selectedRegion}
+                    onChange={(e) => setSelectedRegion(e.target.value)}
+                    className="compact-filter-select"
+                  >
+                    {regions.map(reg => (
+                      <option key={reg.value} value={reg.value}>{reg.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="compact-filter-label">
+                  <span className="filter-icon">🏔️</span> Difficulty
+                  <select
+                    value={selectedDifficulty}
+                    onChange={(e) => setSelectedDifficulty(e.target.value)}
+                    className="compact-filter-select"
+                  >
+                    {difficulties.map(diff => (
+                      <option key={diff.value} value={diff.value}>{diff.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="filter-actions">
+                <button className="reset-filters" onClick={resetFilters}>
+                  Reset Filters
+                </button>
               </div>
             </div>
-
-            <div className="filter-group">
-              <label className="filter-label">
-                <span className="filter-icon">📍</span> Region
-              </label>
-              <div className="filter-options">
-                {regions.map(reg => (
-                  <button
-                    key={reg.value}
-                    className={`filter-btn ${selectedRegion === reg.value ? 'active' : ''}`}
-                    onClick={() => setSelectedRegion(reg.value)}
-                  >
-                    <span className="btn-icon">{reg.icon}</span>
-                    {reg.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <label className="filter-label">
-                <span className="filter-icon">🏔️</span> Difficulty
-              </label>
-              <div className="filter-options">
-                {difficulties.map(diff => (
-                  <button
-                    key={diff.value}
-                    className={`filter-btn difficulty-${diff.value} ${selectedDifficulty === diff.value ? 'active' : ''}`}
-                    onClick={() => setSelectedDifficulty(diff.value)}
-                  >
-                    <span className="btn-icon">{diff.icon}</span>
-                    {diff.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {activeFilterCount > 0 && (
-              <button className="reset-filters" onClick={resetFilters}>
-                Reset All Filters ({activeFilterCount})
-              </button>
-            )}
           </div>
         )}
 
