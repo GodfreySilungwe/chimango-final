@@ -39,6 +39,9 @@ const RegisterPage = () => {
     
     try {
       console.log('Attempting to register:', formData.email);
+      console.log('Attempting to register:', formData.fullName);
+      console.log('Attempting to register:', formData.phone);
+      console.log('Attempting to register:', formData.password);
       await register(formData.fullName, formData.email, formData.password, formData.phone);
       console.log('Registration successful');
       navigate('/');

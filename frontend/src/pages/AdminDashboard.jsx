@@ -51,7 +51,6 @@ const AdminDashboard = () => {
     fetchTours();
     fetchActivities();
     fetchBookings();
-    fetchUsers();
     fetchPaymentRequests();
   }, [user]);
 
@@ -86,13 +85,8 @@ const AdminDashboard = () => {
   };
 
   const fetchUsers = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/users`);
-      const data = await res.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
+    console.warn('Backend does not expose /api/users; user listing is not available with current server routes.');
+    setUsers([]);
   };
 
   const fetchPaymentRequests = async () => {
@@ -214,7 +208,7 @@ const AdminDashboard = () => {
   };
 
   const exportBookings = () => {
-    window.open(`${API_URL}/api/export-bookings`, '_blank');
+    alert('Export bookings is not available because the backend does not provide /api/export-bookings.');
   };
 
   const verifyPayment = async (paymentId, bookingCode, userPhone, customerName) => {

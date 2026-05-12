@@ -8,90 +8,161 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    if (token) {
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
-
-  const fetchUser = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/users/me`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+    const initAuth = () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      
+      console.log('Initializing Auth...');
+      console.log('Raw stored token:', storedToken);
+      console.log('Raw stored user:', storedUser);
+      
+      // Check if token exists and is NOT the string "undefined"
+      const isValidToken = storedToken && 
+                           storedToken !== 'undefined' && 
+                           storedToken !== 'null' &&
+                           storedToken !== '';
+      
+      console.log('Is valid token:', isValidToken);
+      
+      if (isValidToken) {
+        setToken(storedToken);
+        
+        // Safely parse user data
+        if (storedUser && storedUser !== 'undefined' && storedUser !== 'null') {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            console.log('Restored user:', parsedUser);
+            setUser(parsedUser);
+          } catch (e) {
+            console.error('Failed to parse user:', e);
+            localStorage.removeItem('user');
+          }
         }
-      });
-      const data = await res.json();
-      setUser(data);
-    } catch (error) {
-      localStorage.removeItem('token');
-      setToken(null);
-    } finally {
-      setLoading(false);
-    }
+        
+        // Backend has no /api/users/me route, so use cached data only
+        setLoading(false);
+      } else {
+        console.log('No valid token found - clearing storage');
+        // Clear invalid data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setLoading(false);
+      }
+    };
+    
+    initAuth();
+  }, []);
+
+  const fetchUser = async (authToken) => {
+    console.warn('Backend does not expose /api/users/me; using local cached user data only.');
+    setLoading(false);
   };
 
   const login = async (email, password) => {
-  try {
-    console.log('1. Login attempt for:', email);
-    const res = await fetch(`${API_URL}/api/users/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    console.log('2. Response received:', data);
-    const { token, user } = data;
-    console.log('3. Token:', token);
-    console.log('4. User:', user);
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    console.log('5. Token saved to localStorage');
-    setToken(token);
-    setUser(user);
-    return user;
-  } catch (error) {
-    console.error('Login error:', error);
-    throw error;
-  }
-};
-
-  const register = async (fullName, email, password, phone) => {
     try {
-      const res = await fetch(`${API_URL}/api/users/register`, {
+      console.log('Login attempt for:', email);
+      
+      const res = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          fullName, 
-          email, 
-          password, 
-          phone 
-        })
+        body: JSON.stringify({ email, password })
       });
-      const data = await res.json();
-      const { token, user } = data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      setToken(token);
-      setUser(user);
-      return user;
+      
+      console.log('Login response status:', res.status);
+      
+      if (!res.ok) {
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {}
+        throw new Error(errorMessage);
+      }
+      
+      const text = await res.text();
+      console.log('Raw response:', text);
+      
+      if (!text || text.trim() === '') {
+        throw new Error('Empty response from server');
+      }
+      
+      const data = JSON.parse(text);
+      const { token: newToken, user: userData } = data;
+      
+      if (!newToken || !userData) {
+        throw new Error('Invalid response: missing token or user');
+      }
+      
+      console.log('Login successful, storing token');
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setToken(newToken);
+      setUser(userData);
+      
+      return userData;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Login error:', error.message);
+      throw error;
+    }
+  };
+
+  const register = async (fullName, email, password, phone) => {
+    try {
+      console.log('Register attempt for:', email);
+      
+      const res = await fetch(`${API_URL}/api/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ fullName, email, password, phone })
+      });
+      
+      console.log('Register response status:', res.status);
+      
+      if (!res.ok) {
+        let errorMessage = 'Registration failed';
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {}
+        throw new Error(errorMessage);
+      }
+      
+      const text = await res.text();
+      console.log('Raw response:', text);
+      
+      if (!text || text.trim() === '') {
+        throw new Error('Empty response from server');
+      }
+      
+      const data = JSON.parse(text);
+      const { token: newToken, user: userData } = data;
+      
+      if (!newToken || !userData) {
+        throw new Error('Invalid response: missing token or user');
+      }
+      
+      console.log('Registration successful, storing token');
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setToken(newToken);
+      setUser(userData);
+      
+      return userData;
+    } catch (error) {
+      console.error('Registration error:', error.message);
       throw error;
     }
   };
 
   const logout = () => {
+    console.log('Logging out...');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

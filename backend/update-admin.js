@@ -1,28 +1,65 @@
-const mongoose = require('mongoose');
+// scripts/updateUserDynamoDB.js
 require('dotenv').config();
-const User = require('./models/User');
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, UpdateCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
 
-async function updateAdmin() {
+const TABLE_NAME = process.env.DYNAMODB_TABLE || "chimango_dynamoDB";
+
+const client = new DynamoDBClient({
+  region: process.env.AWS_REGION || "us-east-1"
+});
+
+const docClient = DynamoDBDocumentClient.from(client);
+
+async function updateUser() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    const email = 'admin@chimango.com';
     
-    const result = await User.findOneAndUpdate(
-      { email: 'admin@chimango.com' },
-      { fullName: 'Chimango' },
-      { new: true }
-    );
+    // First, find the user by email using the email index
+    const findParams = {
+      TableName: TABLE_NAME,
+      IndexName: "emailIndex",
+      KeyConditionExpression: "email = :email",
+      ExpressionAttributeValues: {
+        ":email": email
+      }
+    };
     
-    if (result) {
-      console.log('Admin name updated to: Chimango');
-    } else {
-      console.log('Admin user not found');
+    const findResult = await docClient.send(new QueryCommand(findParams));
+    
+    if (!findResult.Items || findResult.Items.length === 0) {
+      console.log('User not found with email:', email);
+      process.exit();
     }
     
-    process.exit();
+    const user = findResult.Items[0];
+    const userId = user.id;
+    const userPK = user.PK;
+    const userSK = user.SK;
+    
+    console.log('Found user:', user.fullName);
+    
+    // Update the user
+    const updateParams = {
+      TableName: TABLE_NAME,
+      Key: {
+        PK: userPK,
+        SK: userSK
+      },
+      UpdateExpression: "SET fullName = :fullName, updatedAt = :updatedAt",
+      ExpressionAttributeValues: {
+        ":fullName": "Chimango",
+        ":updatedAt": Date.now()
+      },
+      ReturnValues: "ALL_NEW"
+    };
+    
+    const result = await docClient.send(new UpdateCommand(updateParams));
+    console.log('User updated successfully:', result.Attributes.fullName);
+    
   } catch (error) {
-    console.error('Error:', error);
-    process.exit();
+    console.error('Error updating user:', error);
   }
 }
 
-updateAdmin();
+updateUser();

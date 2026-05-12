@@ -73,30 +73,12 @@ const UserProfilePage = () => {
     setMessage('');
     setError('');
     
-    try {
-      const response = await fetch(`${API_URL}/api/users/profile`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fullName: profileData.fullName,
-          phone: profileData.phone
-        })
-      });
-      
-      setMessage('Profile updated successfully!');
-      const updatedUser = { ...user, fullName: profileData.fullName, phone: profileData.phone };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      setError(error.response?.data?.message || 'Failed to update profile');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setLoading(false);
-    }
+    // Backend does not expose /api/users/profile, so update cached data only
+    const updatedUser = { ...user, fullName: profileData.fullName, phone: profileData.phone };
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setMessage('Profile updated locally. Backend update endpoint is unavailable.');
+    setTimeout(() => setMessage(''), 3000);
+    setLoading(false);
   };
 
   const changePassword = async (e) => {
@@ -118,32 +100,10 @@ const UserProfilePage = () => {
     setMessage('');
     setError('');
     
-    try {
-      await fetch(`${API_URL}/api/users/change-password`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        })
-      });
-      
-      setMessage('Password changed successfully!');
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      setError(error.response?.data?.message || 'Failed to change password');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setLoading(false);
-    }
+    // Backend does not have /api/users/change-password, so this action cannot be completed.
+    setError('Password change is unavailable because the backend does not support this endpoint.');
+    setTimeout(() => setError(''), 5000);
+    setLoading(false);
   };
 
   return (

@@ -39,7 +39,10 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (err) {
-      setLoginError(err.response?.data?.message || 'Login failed');
+      // Fix: Handle error correctly - err is the Error object, not an Axios error
+      const errorMessage = err.message || 'Login failed';
+      setLoginError(errorMessage);
+      console.error('Login error in component:', errorMessage);
     } finally {
       setLoginLoading(false);
     }
@@ -73,7 +76,10 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (err) {
-      setRegisterError(err.response?.data?.message || 'Registration failed');
+      // Fix: Handle error correctly - err is the Error object, not an Axios error
+      const errorMessage = err.message || 'Registration failed';
+      setRegisterError(errorMessage);
+      console.error('Registration error in component:', errorMessage);
     } finally {
       setRegisterLoading(false);
     }

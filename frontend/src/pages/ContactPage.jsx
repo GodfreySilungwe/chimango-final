@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { API_URL } from '../config';
+import './ContactPage.css';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -22,149 +23,252 @@ const ContactPage = () => {
     setError('');
     
     try {
-      await fetch(`${API_URL}/api/contact`, {
+      const response = await fetch(`${API_URL}/api/contact`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       });
-      setSuccess(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
-      setTimeout(() => setSuccess(false), 5000);
+      
+      if (response.ok) {
+        setSuccess(true);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setTimeout(() => setSuccess(false), 5000);
+      } else {
+        throw new Error('Failed to send');
+      }
     } catch (err) {
-      setError('Failed to send message. Please try again.');
+      setError('Failed to send message. Please try again or call us directly.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const contactInfo = [
+    { icon: '📍', title: 'Visit Us', details: 'Lilongwe, Malawi', link: null },
+    { icon: '📧', title: 'Email Us', details: 'goshsolution@gmail.com', link: 'mailto:goshsolution@gmail.com' },
+    { icon: '📞', title: 'Call Us', details: '0995718815', link: 'tel:0995718815' },
+    { icon: '⏰', title: 'Business Hours', details: 'Mon-Fri: 8am-5pm\nSat: 9am-3pm\nSun: Closed', link: null }
+  ];
+
+  const faqs = [
+    {
+      question: 'How do I book a tour?',
+      answer: 'You can browse our activities page, select your preferred experience, and click "Book Now". You\'ll need to create an account or log in to complete the booking.'
+    },
+    {
+      question: 'What payment methods do you accept?',
+      answer: 'We accept credit/debit cards, bank transfers, and mobile money (Airtel Money, TNM Mpamba). All payments are processed securely.'
+    },
+    {
+      question: 'Can I cancel or modify my booking?',
+      answer: 'Yes, you can cancel or modify your booking up to 48 hours before the scheduled date. Please check our cancellation policy for more details.'
+    },
+    {
+      question: 'Do you offer group discounts?',
+      answer: 'Yes, we offer special discounts for groups of 5 or more. Contact us directly for a customized quote.'
+    }
+  ];
+
   return (
-    <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
-      <div style={{
-        backgroundColor: '#e67e22',
-        color: 'white',
-        textAlign: 'center',
-        padding: '60px 20px',
-        width: '100%'
-      }}>
-        <h1 style={{ margin: 0, fontSize: '42px' }}>Contact Us</h1>
-        <p style={{ margin: '16px 0 0', fontSize: '18px' }}>
-          We'd love to hear from you
-        </p>
-      </div>
+    <div className="contact-page">
+      {/* Hero Section */}
+      <section className="contact-hero">
+        <div className="contact-hero-overlay"></div>
+        <div className="contact-hero-content">
+          <div className="hero-badge">Get in Touch</div>
+          <h1 className="contact-hero-title">
+            Let's Start Your <span className="highlight">Journey</span>
+          </h1>
+          <p className="contact-hero-subtitle">
+            Have questions? Ready to book your dream adventure? Our travel specialists are here to help 24/7.
+          </p>
+        </div>
+      </section>
 
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 20px' }}>
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '30px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
-            {/* Contact Info */}
-            <div>
-              <h2 style={{ color: '#e67e22', marginBottom: '20px' }}>Get in Touch</h2>
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '20px', marginBottom: '8px' }}>📍</div>
-                <p style={{ color: '#555' }}>Lilongwe, Malawi</p>
+      {/* Contact Info Cards */}
+      <section className="contact-cards-section">
+        <div className="container">
+          <div className="contact-cards-grid">
+            {contactInfo.map((info, index) => (
+              <div className="contact-card" key={index}>
+                <div className="contact-card-icon">{info.icon}</div>
+                <h3 className="contact-card-title">{info.title}</h3>
+                {info.link ? (
+                  <a href={info.link} className="contact-card-details">{info.details}</a>
+                ) : (
+                  <p className="contact-card-details" style={{ whiteSpace: 'pre-line' }}>{info.details}</p>
+                )}
               </div>
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '20px', marginBottom: '8px' }}>📧</div>
-                <a href="mailto:info@chimangotour.com" style={{ color: '#e67e22', textDecoration: 'none' }}>info@chimangotour.com</a>
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '20px', marginBottom: '8px' }}>📞</div>
-                <a href="tel:+265123456789" style={{ color: '#e67e22', textDecoration: 'none' }}>+265 123 456 789</a>
-              </div>
-              <div>
-                <div style={{ fontSize: '20px', marginBottom: '8px' }}>⏰</div>
-                <p style={{ color: '#555' }}>Monday - Friday: 8am - 5pm</p>
-                <p style={{ color: '#555' }}>Saturday: 9am - 3pm</p>
-                <p style={{ color: '#555' }}>Sunday: Closed</p>
-              </div>
-            </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            {/* Contact Form */}
-            <div>
-              <h2 style={{ color: '#e67e22', marginBottom: '20px' }}>Send us a Message</h2>
+      {/* Main Contact Section */}
+      <section className="main-contact-section">
+        <div className="container">
+          <div className="contact-grid">
+            {/* Left Side - Contact Form */}
+            <div className="contact-form-wrapper">
+              <div className="section-header">
+                <span className="section-badge">Send Message</span>
+                <h2 className="section-title">We'd Love to <span className="highlight">Hear From You</span></h2>
+                <p>Fill out the form below and we'll get back to you within 24 hours.</p>
+              </div>
+
               {success && (
-                <div style={{ backgroundColor: '#d4edda', color: '#155724', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
-                  ✓ Message sent successfully! We'll get back to you soon.
+                <div className="alert-success">
+                  <span className="alert-icon">✓</span>
+                  <div>
+                    <strong>Message sent successfully!</strong>
+                    <p>Thank you for reaching out. We'll get back to you soon.</p>
+                  </div>
                 </div>
               )}
+
               {error && (
-                <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
-                  {error}
+                <div className="alert-error">
+                  <span className="alert-icon">⚠</span>
+                  <div>
+                    <strong>Something went wrong!</strong>
+                    <p>{error}</p>
+                  </div>
                 </div>
               )}
-              <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Your Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
-                  />
+
+              <form onSubmit={handleSubmit} className="contact-form">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Your Name *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Email Address *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      placeholder="john@example.com"
+                    />
+                  </div>
                 </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Email Address *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
-                  />
-                </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Subject *</label>
+
+                <div className="form-group">
+                  <label>Subject *</label>
                   <input
                     type="text"
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
                     required
-                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                    placeholder="How can we help you?"
                   />
                 </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Message *</label>
+
+                <div className="form-group">
+                  <label>Message *</label>
                   <textarea
                     name="message"
                     value={formData.message}
                     onChange={handleChange}
                     rows="5"
                     required
-                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                    placeholder="Tell us about your travel plans or questions..."
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: '#e67e22',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {submitting ? 'Sending...' : 'Send Message'}
+
+                <button type="submit" className="btn-submit" disabled={submitting}>
+                  {submitting ? 'Sending...' : 'Send Message →'}
                 </button>
               </form>
             </div>
+
+            {/* Right Side - FAQ Section */}
+            <div className="faq-wrapper">
+              <div className="section-header">
+                <span className="section-badge">FAQ</span>
+                <h2 className="section-title">Frequently Asked <span className="highlight">Questions</span></h2>
+                <p>Quick answers to common questions</p>
+              </div>
+
+              <div className="faq-list">
+                {faqs.map((faq, index) => (
+                  <div className="faq-item" key={index}>
+                    <div className="faq-question">
+                      <span className="faq-icon">?</span>
+                      <h4>{faq.question}</h4>
+                    </div>
+                    <p className="faq-answer">{faq.answer}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="support-cta">
+                <p>Still have questions?</p>
+                <button className="btn-chat" onClick={() => window.location.href = 'tel:0995718815'}>
+                  📞 Call Support
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Map Section */}
+      <section className="map-section">
+        <div className="container">
+          <div className="map-wrapper">
+            <iframe
+              title="Chimango Tour Location"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1960529.123456789!2d33.0!3d-13.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTPCsDE5JzUyLjAiUyAzM8KwMDAnMDAuMCJF!5e0!3m2!1sen!2smw!4v1234567890123!5m2!1sen!2smw"
+              width="100%"
+              height="400"
+              style={{ border: 0 }}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            ></iframe>
+            <div className="map-overlay">
+              <div className="map-location">
+                <span className="location-icon">📍</span>
+                <div>
+                  <h4>Chimango Tour Office</h4>
+                  <p>Lilongwe, Malawi</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="cta-section">
+        <div className="container">
+          <div className="cta-content">
+            <h2>Ready to Explore Malawi?</h2>
+            <p>Book your adventure today and experience the Warm Heart of Africa</p>
+            <div className="cta-buttons">
+              <button className="btn-primary" onClick={() => window.location.href = '/activities'}>
+                Browse Activities →
+              </button>
+              <button className="btn-outline" onClick={() => window.location.href = '/custom-booking'}>
+                Customize Your Trip
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

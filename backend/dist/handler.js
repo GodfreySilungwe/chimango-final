@@ -6,28 +6,35 @@ const serverless = require('serverless-http');
 const app = require('./server');
 const { initializeTable } = require('./services/dynamodbService');
 
-// Initialize DynamoDB table on cold start (fire and forget)
-// This runs once per cold start, doesn't block the response
+// Initialize DynamoDB table on cold start
 initializeTable().catch(error => {
   console.error('Error initializing DynamoDB table:', error);
 });
 
-// Create the serverless handler - NO double wrapping
-const serverlessHandler = serverless(app, {
-  basePath: process.env.BASE_PATH || '/',
-  httpMethod: 'ANY',
-  cors: {
-    origin: [
-      process.env.FRONTEND_URL,
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://chimangofrontendwebsitebucket.s3-website-us-east-1.amazonaws.com'
-    ],
-    credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    headers: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With']
+// Parse the event body and attach to event
+const wrapper = async (event, context) => {
+  console.log('=== HANDLER DEBUG ===');
+  console.log('Event body type:', typeof event.body);
+  console.log('Event body raw:', event.body);
+  
+  // Parse body if it's a string
+  if (event.body && typeof event.body === 'string') {
+    try {
+      const parsedBody = JSON.parse(event.body);
+      console.log('Parsed body successfully:', parsedBody);
+      // Replace the body with the parsed object
+      event.body = parsedBody;
+    } catch (e) {
+      console.log('Could not parse body as JSON:', e.message);
+    }
   }
-});
+  
+  console.log('Event body after parsing:', event.body);
+  console.log('Event body type after:', typeof event.body);
+  
+  const handler = serverless(app);
+  const result = await handler(event, context);
+  return result;
+};
 
-// Direct export - serverless-http is the handler
-module.exports.handler = serverlessHandler;
+module.exports.handler = wrapper;

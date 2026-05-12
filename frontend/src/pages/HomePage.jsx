@@ -36,9 +36,25 @@ const HomePage = () => {
     satisfaction: 0
   });
 
+  // Safe JSON parse function
+  const safeJsonParse = (item, defaultValue = null) => {
+    if (!item || item === 'undefined' || item === 'null') {
+      return defaultValue;
+    }
+    try {
+      return JSON.parse(item);
+    } catch (error) {
+      console.error('JSON Parse error:', error);
+      return defaultValue;
+    }
+  };
+
   useEffect(() => {
+    // FIX: Safe parsing of stored user
     const storedUser = localStorage.getItem('user');
-    if (storedUser) setUser(JSON.parse(storedUser));
+    const userData = safeJsonParse(storedUser);
+    if (userData) setUser(userData);
+    
     fetchActivities();
     loadStats();
     
@@ -184,85 +200,85 @@ const HomePage = () => {
       </div>
 
       {/* Welcome Section */}
-<section className="welcome-section" style={{
-  padding: '5rem 0',
-  background: '#ffffff',
-  textAlign: 'center',
-  position: 'relative'
-}}>
-  <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem' }}>
-    <div className="welcome-content">
-      <div className="welcome-icon" style={{ fontSize: '4rem', marginBottom: '1.5rem', display: 'inline-block' }}>🏔️</div>
-      <h2 className="welcome-title" style={{
-        fontSize: '2.5rem',
-        fontWeight: '700',
-        color: '#1a472a',
-        marginBottom: '1rem',
-        fontFamily: 'Playfair Display, Georgia, serif'
-      }}>Welcome to Chimango Tour</h2>
-      <p className="welcome-subtitle" style={{
-        fontSize: '1rem',
-        color: '#4a5568',
-        maxWidth: '800px',
-        margin: '0 auto 2rem',
-        lineHeight: '1.7'
+      <section className="welcome-section" style={{
+        padding: '5rem 0',
+        background: '#ffffff',
+        textAlign: 'center',
+        position: 'relative'
       }}>
-        Your premier gateway to unforgettable Malawian adventures. We craft authentic experiences 
-        that connect you with the warmth of our people, the richness of our culture, and the 
-        breathtaking beauty of our landscapes.
-      </p>
-      <div className="welcome-features" style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '2rem',
-        flexWrap: 'wrap'
-      }}>
-        <div className="welcome-feature" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontSize: '0.875rem',
-          color: '#2d3748',
-          background: '#f7fafc',
-          padding: '0.5rem 1.25rem',
-          borderRadius: '999px',
-          transition: 'all 0.3s ease',
-          border: '1px solid #e2e8f0'
-        }}>
-          <span style={{ color: '#2ecc71', fontWeight: '700', fontSize: '1rem' }}>✓</span> Expert Local Guides
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem' }}>
+          <div className="welcome-content">
+            <div className="welcome-icon" style={{ fontSize: '4rem', marginBottom: '1.5rem', display: 'inline-block' }}>🏔️</div>
+            <h2 className="welcome-title" style={{
+              fontSize: '2.5rem',
+              fontWeight: '700',
+              color: '#1a472a',
+              marginBottom: '1rem',
+              fontFamily: 'Playfair Display, Georgia, serif'
+            }}>Welcome to Chimango Tour</h2>
+            <p className="welcome-subtitle" style={{
+              fontSize: '1rem',
+              color: '#4a5568',
+              maxWidth: '800px',
+              margin: '0 auto 2rem',
+              lineHeight: '1.7'
+            }}>
+              Your premier gateway to unforgettable Malawian adventures. We craft authentic experiences 
+              that connect you with the warmth of our people, the richness of our culture, and the 
+              breathtaking beauty of our landscapes.
+            </p>
+            <div className="welcome-features" style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '2rem',
+              flexWrap: 'wrap'
+            }}>
+              <div className="welcome-feature" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                color: '#2d3748',
+                background: '#f7fafc',
+                padding: '0.5rem 1.25rem',
+                borderRadius: '999px',
+                transition: 'all 0.3s ease',
+                border: '1px solid #e2e8f0'
+              }}>
+                <span style={{ color: '#2ecc71', fontWeight: '700', fontSize: '1rem' }}>✓</span> Expert Local Guides
+              </div>
+              <div className="welcome-feature" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                color: '#2d3748',
+                background: '#f7fafc',
+                padding: '0.5rem 1.25rem',
+                borderRadius: '999px',
+                transition: 'all 0.3s ease',
+                border: '1px solid #e2e8f0'
+              }}>
+                <span style={{ color: '#2ecc71', fontWeight: '700', fontSize: '1rem' }}>✓</span> Sustainable Tourism
+              </div>
+              <div className="welcome-feature" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                color: '#2d3748',
+                background: '#f7fafc',
+                padding: '0.5rem 1.25rem',
+                borderRadius: '999px',
+                transition: 'all 0.3s ease',
+                border: '1px solid #e2e8f0'
+              }}>
+                <span style={{ color: '#2ecc71', fontWeight: '700', fontSize: '1rem' }}>✓</span> 24/7 Support
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="welcome-feature" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontSize: '0.875rem',
-          color: '#2d3748',
-          background: '#f7fafc',
-          padding: '0.5rem 1.25rem',
-          borderRadius: '999px',
-          transition: 'all 0.3s ease',
-          border: '1px solid #e2e8f0'
-        }}>
-          <span style={{ color: '#2ecc71', fontWeight: '700', fontSize: '1rem' }}>✓</span> Sustainable Tourism
-        </div>
-        <div className="welcome-feature" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontSize: '0.875rem',
-          color: '#2d3748',
-          background: '#f7fafc',
-          padding: '0.5rem 1.25rem',
-          borderRadius: '999px',
-          transition: 'all 0.3s ease',
-          border: '1px solid #e2e8f0'
-        }}>
-          <span style={{ color: '#2ecc71', fontWeight: '700', fontSize: '1rem' }}>✓</span> 24/7 Support
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+      </section>
 
       {/* Featured Activities Section */}
       <section id="activities-section" className="featured-section">
