@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
+import './AdminDashboard.css';
 
 const AdminDashboard = () => {
   const { user, token } = useAuth();
@@ -9,15 +10,21 @@ const AdminDashboard = () => {
   const [bookings, setBookings] = useState([]);
   const [users, setUsers] = useState([]);
   const [paymentRequests, setPaymentRequests] = useState([]);
-  const [activeTab, setActiveTab] = useState('activities');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [showAddTour, setShowAddTour] = useState(false);
   const [showAddActivity, setShowAddActivity] = useState(false);
-  
-  // Delete confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [deleteType, setDeleteType] = useState(''); // 'activity' or 'tour'
-  
+  const [deleteType, setDeleteType] = useState('');
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalBookings: 0,
+    totalActivities: 0,
+    totalTours: 0,
+    totalUsers: 0,
+    pendingPayments: 0
+  });
+
   const [newTour, setNewTour] = useState({
     name: '',
     destination: '',
@@ -31,6 +38,7 @@ const AdminDashboard = () => {
     notIncluded: '',
     status: 'published'
   });
+
   const [newActivity, setNewActivity] = useState({
     name: '',
     location: '',
@@ -48,11 +56,18 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (user?.role !== 'admin') return;
-    fetchTours();
-    fetchActivities();
-    fetchBookings();
-    fetchPaymentRequests();
+    fetchAllData();
   }, [user]);
+
+  const fetchAllData = async () => {
+    await Promise.all([
+      fetchTours(),
+      fetchActivities(),
+      fetchBookings(),
+      fetchPaymentRequests(),
+      fetchUsers()
+    ]);
+  };
 
   const fetchTours = async () => {
     try {
@@ -76,27 +91,53 @@ const AdminDashboard = () => {
 
   const fetchBookings = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/custom-bookings`);
+      const res = await fetch(`${API_URL}/api/custom-bookings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
       setBookings(data);
+      updateStats(data);
     } catch (error) {
       console.error('Error fetching bookings:', error);
     }
   };
 
   const fetchUsers = async () => {
-    console.warn('Backend does not expose /api/users; user listing is not available with current server routes.');
-    setUsers([]);
+    try {
+      const res = await fetch(`${API_URL}/api/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setUsers(data);
+      setStats(prev => ({ ...prev, totalUsers: data.length }));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
   };
 
   const fetchPaymentRequests = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/payment-requests/pending`);
+      const res = await fetch(`${API_URL}/api/payment-requests/pending`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
       setPaymentRequests(data);
+      setStats(prev => ({ ...prev, pendingPayments: data.length }));
     } catch (error) {
       console.error('Error fetching payment requests:', error);
     }
+  };
+
+  const updateStats = (bookingsData) => {
+    const totalRevenue = bookingsData.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+    setStats({
+      totalRevenue,
+      totalBookings: bookingsData.length,
+      totalActivities: activities.length,
+      totalTours: tours.length,
+      totalUsers: users.length,
+      pendingPayments: paymentRequests.length
+    });
   };
 
   const handleAddTour = async (e) => {
@@ -112,23 +153,11 @@ const AdminDashboard = () => {
       });
       setShowAddTour(false);
       fetchTours();
-      setNewTour({
-        name: '',
-        destination: '',
-        durationDays: 3,
-        price: 0,
-        maxCapacity: 20,
-        startDate: '',
-        endDate: '',
-        itineraryText: '',
-        included: '',
-        notIncluded: '',
-        status: 'published'
-      });
-      alert('Tour added successfully!');
+      resetTourForm();
+      alert('✅ Tour added successfully!');
     } catch (error) {
       console.error('Error adding tour:', error);
-      alert('Failed to add tour');
+      alert('❌ Failed to add tour');
     }
   };
 
@@ -145,61 +174,42 @@ const AdminDashboard = () => {
       });
       setShowAddActivity(false);
       fetchActivities();
-      setNewActivity({
-        name: '',
-        location: '',
-        region: 'Southern Region',
-        description: '',
-        pricePerDay: 0,
-        pricePerPerson: 0,
-        durationHours: 3,
-        category: 'hiking',
-        difficulty: 'easy',
-        minPeople: 1,
-        maxPeople: 20,
-        status: 'active'
-      });
-      alert('Activity added successfully');
+      resetActivityForm();
+      alert('✅ Activity added successfully!');
     } catch (error) {
       console.error('Error adding activity:', error);
-      alert('Failed to add activity');
+      alert('❌ Failed to add activity');
     }
   };
 
-  // Show delete confirmation modal
   const confirmDelete = (item, type) => {
     setItemToDelete(item);
     setDeleteType(type);
     setShowDeleteConfirm(true);
   };
 
-  // Handle actual deletion after confirmation
   const handleDeleteConfirm = async () => {
     if (!itemToDelete) return;
     
     try {
       if (deleteType === 'activity') {
-        await fetch(`${API_URL}/api/activities/${itemToDelete._id}`, {
+        await fetch(`${API_URL}/api/activities/${itemToDelete._id || itemToDelete.id}`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
         fetchActivities();
-        alert(`✅ "${itemToDelete.name}" has been deleted successfully.`);
+        alert(`✅ "${itemToDelete.name}" deleted successfully.`);
       } else if (deleteType === 'tour') {
-        await fetch(`${API_URL}/api/tours/${itemToDelete._id}`, {
+        await fetch(`${API_URL}/api/tours/${itemToDelete._id || itemToDelete.id}`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
         fetchTours();
-        alert(`✅ "${itemToDelete.name}" has been deleted successfully.`);
+        alert(`✅ "${itemToDelete.name}" deleted successfully.`);
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert(`❌ Failed to delete. Please try again.`);
+      alert('❌ Failed to delete. Please try again.');
     } finally {
       setShowDeleteConfirm(false);
       setItemToDelete(null);
@@ -207,345 +217,469 @@ const AdminDashboard = () => {
     }
   };
 
-  const exportBookings = () => {
-    alert('Export bookings is not available because the backend does not provide /api/export-bookings.');
-  };
-
-  const verifyPayment = async (paymentId, bookingCode, userPhone, customerName) => {
-    if (!confirm(`Confirm payment for ${customerName}?`)) return;
+  const verifyPayment = async (paymentId, bookingCode, customerName) => {
+    if (!confirm(`Confirm payment verification for ${customerName}?`)) return;
     
     try {
       await fetch(`${API_URL}/api/payment-requests/${paymentId}/verify`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       await fetch(`${API_URL}/api/custom-bookings/confirm/${bookingCode}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      alert(`Payment verified for ${customerName}`);
+      alert(`✅ Payment verified for ${customerName}`);
       fetchPaymentRequests();
       fetchBookings();
     } catch (error) {
       console.error('Verification error:', error);
-      alert('Failed to verify payment');
+      alert('❌ Failed to verify payment');
     }
   };
 
-  const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
-  const totalBookings = bookings.length;
-  const totalActivities = activities.length;
-  const totalTours = tours.length;
-  const totalUsers = users.length;
+  const resetTourForm = () => {
+    setNewTour({
+      name: '',
+      destination: '',
+      durationDays: 3,
+      price: 0,
+      maxCapacity: 20,
+      startDate: '',
+      endDate: '',
+      itineraryText: '',
+      included: '',
+      notIncluded: '',
+      status: 'published'
+    });
+  };
+
+  const resetActivityForm = () => {
+    setNewActivity({
+      name: '',
+      location: '',
+      region: 'Southern Region',
+      description: '',
+      pricePerDay: 0,
+      pricePerPerson: 0,
+      durationHours: 3,
+      category: 'hiking',
+      difficulty: 'easy',
+      minPeople: 1,
+      maxPeople: 20,
+      status: 'active'
+    });
+  };
 
   if (user?.role !== 'admin') {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
+      <div className="admin-access-denied">
+        <div className="access-icon">🔒</div>
         <h2>Access Denied</h2>
-        <p>You need admin privileges to view this page.</p>
+        <p>You need administrator privileges to view this page.</p>
+        <button className="btn-primary" onClick={() => window.location.href = '/'}>
+          Return to Home →
+        </button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-      <h1>Admin Dashboard</h1>
-      <p style={{ color: '#666', marginBottom: '2rem' }}>Manage tours, activities, users, and view bookings</p>
-      
-      <button onClick={exportBookings} style={{ backgroundColor: '#27ae60', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer', marginBottom: '20px', fontSize: '14px' }}>📊 Export Bookings to Excel</button>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-        <div style={{ padding: '1rem', backgroundColor: '#3498db', color: 'white', borderRadius: '8px', textAlign: 'center' }}><h2 style={{ margin: 0 }}>{totalTours}</h2><p style={{ margin: 0 }}>Total Tours</p></div>
-        <div style={{ padding: '1rem', backgroundColor: '#2ecc71', color: 'white', borderRadius: '8px', textAlign: 'center' }}><h2 style={{ margin: 0 }}>{totalActivities}</h2><p style={{ margin: 0 }}>Total Activities</p></div>
-        <div style={{ padding: '1rem', backgroundColor: '#e67e22', color: 'white', borderRadius: '8px', textAlign: 'center' }}><h2 style={{ margin: 0 }}>{totalBookings}</h2><p style={{ margin: 0 }}>Total Bookings</p></div>
-        <div style={{ padding: '1rem', backgroundColor: '#9b59b6', color: 'white', borderRadius: '8px', textAlign: 'center' }}><h2 style={{ margin: 0 }}>USD {totalRevenue.toLocaleString()}</h2><p style={{ margin: 0 }}>Total Revenue</p></div>
-        <div style={{ padding: '1rem', backgroundColor: '#1abc9c', color: 'white', borderRadius: '8px', textAlign: 'center' }}><h2 style={{ margin: 0 }}>{totalUsers}</h2><p style={{ margin: 0 }}>Total Users</p></div>
+    <div className="admin-dashboard">
+      {/* Header */}
+      <div className="admin-header">
+        <div className="admin-title">
+          <span className="admin-icon">👑</span>
+          <h1>Admin Dashboard</h1>
+        </div>
+        <p className="admin-subtitle">Manage tours, activities, users, and view bookings</p>
       </div>
-      
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd', flexWrap: 'wrap' }}>
-        <button onClick={() => setActiveTab('activities')} style={{ padding: '0.5rem 1rem', backgroundColor: activeTab === 'activities' ? '#3498db' : 'transparent', color: activeTab === 'activities' ? 'white' : '#333', border: 'none', cursor: 'pointer', borderRadius: '4px 4px 0 0' }}>Manage Activities</button>
-        <button onClick={() => setActiveTab('tours')} style={{ padding: '0.5rem 1rem', backgroundColor: activeTab === 'tours' ? '#3498db' : 'transparent', color: activeTab === 'tours' ? 'white' : '#333', border: 'none', cursor: 'pointer', borderRadius: '4px 4px 0 0' }}>Manage Tours</button>
-        <button onClick={() => setActiveTab('bookings')} style={{ padding: '0.5rem 1rem', backgroundColor: activeTab === 'bookings' ? '#3498db' : 'transparent', color: activeTab === 'bookings' ? 'white' : '#333', border: 'none', cursor: 'pointer', borderRadius: '4px 4px 0 0' }}>View Bookings</button>
-        <button onClick={() => setActiveTab('users')} style={{ padding: '0.5rem 1rem', backgroundColor: activeTab === 'users' ? '#3498db' : 'transparent', color: activeTab === 'users' ? 'white' : '#333', border: 'none', cursor: 'pointer', borderRadius: '4px 4px 0 0' }}>Users &amp; Contacts</button>
-        <button onClick={() => setActiveTab('payments')} style={{ padding: '0.5rem 1rem', backgroundColor: activeTab === 'payments' ? '#3498db' : 'transparent', color: activeTab === 'payments' ? 'white' : '#333', border: 'none', cursor: 'pointer', borderRadius: '4px 4px 0 0' }}>Payment Requests ({paymentRequests.length})</button>
+
+      {/* Stats Cards */}
+      <div className="stats-grid">
+        <div className="stat-card stat-tours">
+          <div className="stat-icon">🏕️</div>
+          <div className="stat-info">
+            <h3>{stats.totalTours}</h3>
+            <p>Total Tours</p>
+          </div>
+        </div>
+        <div className="stat-card stat-activities">
+          <div className="stat-icon">🏔️</div>
+          <div className="stat-info">
+            <h3>{stats.totalActivities}</h3>
+            <p>Activities</p>
+          </div>
+        </div>
+        <div className="stat-card stat-bookings">
+          <div className="stat-icon">📅</div>
+          <div className="stat-info">
+            <h3>{stats.totalBookings}</h3>
+            <p>Bookings</p>
+          </div>
+        </div>
+        <div className="stat-card stat-revenue">
+          <div className="stat-icon">💰</div>
+          <div className="stat-info">
+            <h3>${stats.totalRevenue.toLocaleString()}</h3>
+            <p>Revenue (USD)</p>
+          </div>
+        </div>
+        <div className="stat-card stat-users">
+          <div className="stat-icon">👥</div>
+          <div className="stat-info">
+            <h3>{stats.totalUsers}</h3>
+            <p>Users</p>
+          </div>
+        </div>
+        <div className="stat-card stat-pending">
+          <div className="stat-icon">⏳</div>
+          <div className="stat-info">
+            <h3>{stats.pendingPayments}</h3>
+            <p>Pending</p>
+          </div>
+        </div>
       </div>
-      
+
+      {/* Tab Navigation */}
+      <div className="admin-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => setActiveTab('dashboard')}
+        >
+          <span className="tab-icon">📊</span> Dashboard
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'activities' ? 'active' : ''}`}
+          onClick={() => setActiveTab('activities')}
+        >
+          <span className="tab-icon">🏔️</span> Activities
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'tours' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tours')}
+        >
+          <span className="tab-icon">🏕️</span> Tours
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
+          onClick={() => setActiveTab('bookings')}
+        >
+          <span className="tab-icon">📅</span> Bookings
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'payments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('payments')}
+        >
+          <span className="tab-icon">💳</span> Payments
+          {stats.pendingPayments > 0 && <span className="tab-badge">{stats.pendingPayments}</span>}
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          <span className="tab-icon">👥</span> Users
+        </button>
+      </div>
+
+      {/* Dashboard Tab */}
+      {activeTab === 'dashboard' && (
+        <div className="dashboard-tab">
+          <div className="dashboard-welcome">
+            <h2>Welcome back, {user.fullName}!</h2>
+            <p>Here's what's happening with your business today.</p>
+          </div>
+          <div className="dashboard-grid">
+            <div className="dashboard-card">
+              <h4>Recent Bookings</h4>
+              {bookings.slice(0, 5).map(booking => (
+                <div key={booking.id} className="recent-item">
+                  <span>{booking.bookingCode}</span>
+                  <span className={`status-badge ${booking.status}`}>{booking.status}</span>
+                </div>
+              ))}
+            </div>
+            <div className="dashboard-card">
+              <h4>Pending Payments</h4>
+              {paymentRequests.slice(0, 5).map(payment => (
+                <div key={payment.id} className="recent-item">
+                  <span>{payment.customerName}</span>
+                  <span>${payment.amount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Activities Tab */}
       {activeTab === 'activities' && (
-        <div>
-          <button onClick={() => setShowAddActivity(!showAddActivity)} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>{showAddActivity ? 'Cancel' : '+ Add New Activity'}</button>
+        <div className="admin-section">
+          <div className="section-header">
+            <h2>Manage Activities</h2>
+            <button className="btn-add" onClick={() => setShowAddActivity(!showAddActivity)}>
+              {showAddActivity ? 'Cancel' : '+ Add New Activity'}
+            </button>
+          </div>
+
           {showAddActivity && (
-            <form onSubmit={handleAddActivity} style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+            <form className="admin-form" onSubmit={handleAddActivity}>
               <h3>Add New Activity</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                <input type="text" placeholder="Activity Name" value={newActivity.name} onChange={(e) => setNewActivity({...newActivity, name: e.target.value})} required style={{ padding: '0.5rem' }} />
-                <input type="text" placeholder="Location" value={newActivity.location} onChange={(e) => setNewActivity({...newActivity, location: e.target.value})} required style={{ padding: '0.5rem' }} />
-                <select value={newActivity.region} onChange={(e) => setNewActivity({...newActivity, region: e.target.value})} style={{ padding: '0.5rem' }}><option value="Northern Region">Northern Region</option><option value="Southern Region">Southern Region</option><option value="Central Region">Central Region</option><option value="Eastern Region">Eastern Region</option></select>
-                <select value={newActivity.category} onChange={(e) => setNewActivity({...newActivity, category: e.target.value})} style={{ padding: '0.5rem' }}><option value="hiking">Hiking</option><option value="safari">Safari</option><option value="kayaking">Kayaking</option><option value="cultural">Cultural</option><option value="beach">Beach</option></select>
-                <input type="number" placeholder="Price Per Day (USD)" value={newActivity.pricePerDay} onChange={(e) => setNewActivity({...newActivity, pricePerDay: parseInt(e.target.value)})} required style={{ padding: '0.5rem' }} />
-                <input type="number" placeholder="Price Per Person (USD)" value={newActivity.pricePerPerson} onChange={(e) => setNewActivity({...newActivity, pricePerPerson: parseInt(e.target.value)})} required style={{ padding: '0.5rem' }} />
-                <input type="number" placeholder="Duration (hours)" value={newActivity.durationHours} onChange={(e) => setNewActivity({...newActivity, durationHours: parseInt(e.target.value)})} required style={{ padding: '0.5rem' }} />
-                <select value={newActivity.difficulty} onChange={(e) => setNewActivity({...newActivity, difficulty: e.target.value})} style={{ padding: '0.5rem' }}><option value="easy">Easy</option><option value="moderate">Moderate</option><option value="challenging">Challenging</option></select>
-                <input type="number" placeholder="Min People" value={newActivity.minPeople} onChange={(e) => setNewActivity({...newActivity, minPeople: parseInt(e.target.value)})} required style={{ padding: '0.5rem' }} />
-                <input type="number" placeholder="Max People" value={newActivity.maxPeople} onChange={(e) => setNewActivity({...newActivity, maxPeople: parseInt(e.target.value)})} required style={{ padding: '0.5rem' }} />
+              <div className="form-grid">
+                <input type="text" placeholder="Activity Name" value={newActivity.name} onChange={(e) => setNewActivity({...newActivity, name: e.target.value})} required />
+                <input type="text" placeholder="Location" value={newActivity.location} onChange={(e) => setNewActivity({...newActivity, location: e.target.value})} required />
+                <select value={newActivity.region} onChange={(e) => setNewActivity({...newActivity, region: e.target.value})}>
+                  <option value="Northern Region">Northern Region</option>
+                  <option value="Southern Region">Southern Region</option>
+                  <option value="Central Region">Central Region</option>
+                  <option value="Eastern Region">Eastern Region</option>
+                </select>
+                <select value={newActivity.category} onChange={(e) => setNewActivity({...newActivity, category: e.target.value})}>
+                  <option value="hiking">Hiking</option>
+                  <option value="safari">Safari</option>
+                  <option value="kayaking">Kayaking</option>
+                  <option value="cultural">Cultural</option>
+                  <option value="beach">Beach</option>
+                </select>
+                <input type="number" placeholder="Price Per Day (USD)" value={newActivity.pricePerDay} onChange={(e) => setNewActivity({...newActivity, pricePerDay: parseInt(e.target.value)})} />
+                <input type="number" placeholder="Duration (hours)" value={newActivity.durationHours} onChange={(e) => setNewActivity({...newActivity, durationHours: parseInt(e.target.value)})} />
+                <select value={newActivity.difficulty} onChange={(e) => setNewActivity({...newActivity, difficulty: e.target.value})}>
+                  <option value="easy">Easy</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="challenging">Challenging</option>
+                </select>
+                <input type="number" placeholder="Max People" value={newActivity.maxPeople} onChange={(e) => setNewActivity({...newActivity, maxPeople: parseInt(e.target.value)})} />
               </div>
-              <textarea placeholder="Description" value={newActivity.description} onChange={(e) => setNewActivity({...newActivity, description: e.target.value})} rows="3" style={{ width: '100%', marginTop: '1rem', padding: '0.5rem' }} required />
-              <button type="submit" style={{ marginTop: '1rem', padding: '0.5rem 1rem', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Save Activity</button>
+              <textarea placeholder="Description" value={newActivity.description} onChange={(e) => setNewActivity({...newActivity, description: e.target.value})} rows="3" />
+              <button type="submit" className="btn-save">Save Activity</button>
             </form>
           )}
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f2f2f2' }}>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Name</th>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Location</th>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Price/Day (USD)</th>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Category</th>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activities.map((activity) => (
-                <tr key={activity._id} style={{ borderBottom: '1px solid #ddd' }}>
-                  <td style={{ padding: '0.5rem' }}>{activity.name}</td>
-                  <td style={{ padding: '0.5rem' }}>{activity.location}</td>
-                  <td style={{ padding: '0.5rem' }}>USD {activity.pricePerDay?.toLocaleString() || 0}</td>
-                  <td style={{ padding: '0.5rem' }}>{activity.category}</td>
-                  <td style={{ padding: '0.5rem' }}>
-                    <button onClick={() => confirmDelete(activity, 'activity')} style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}>Delete</button>
-                  </td>
-                 </tr>
-              ))}
-            </tbody>
-          </table>
+
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Location</th>
+                  <th>Price/Day</th>
+                  <th>Category</th>
+                  <th>Difficulty</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activities.map((activity) => (
+                  <tr key={activity._id || activity.id}>
+                    <td>{activity.name}</td>
+                    <td>{activity.location}</td>
+                    <td>${activity.pricePerDay}</td>
+                    <td><span className="category-badge">{activity.category}</span></td>
+                    <td><span className={`difficulty-badge ${activity.difficulty}`}>{activity.difficulty}</span></td>
+                    <td>
+                      <button className="btn-delete" onClick={() => confirmDelete(activity, 'activity')}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-      
+
+      {/* Tours Tab */}
       {activeTab === 'tours' && (
-        <div>
-          <button onClick={() => setShowAddTour(!showAddTour)} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>{showAddTour ? 'Cancel' : '+ Add New Tour'}</button>
+        <div className="admin-section">
+          <div className="section-header">
+            <h2>Manage Tours</h2>
+            <button className="btn-add" onClick={() => setShowAddTour(!showAddTour)}>
+              {showAddTour ? 'Cancel' : '+ Add New Tour'}
+            </button>
+          </div>
+
           {showAddTour && (
-            <form onSubmit={handleAddTour} style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+            <form className="admin-form" onSubmit={handleAddTour}>
               <h3>Add New Tour</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                <input type="text" placeholder="Tour Name" value={newTour.name} onChange={(e) => setNewTour({...newTour, name: e.target.value})} required style={{ padding: '0.5rem' }} />
-                <input type="text" placeholder="Destination" value={newTour.destination} onChange={(e) => setNewTour({...newTour, destination: e.target.value})} required style={{ padding: '0.5rem' }} />
-                <input type="number" placeholder="Duration (days)" value={newTour.durationDays} onChange={(e) => setNewTour({...newTour, durationDays: parseInt(e.target.value)})} required style={{ padding: '0.5rem' }} />
-                <input type="number" placeholder="Price (USD)" value={newTour.price} onChange={(e) => setNewTour({...newTour, price: parseInt(e.target.value)})} required style={{ padding: '0.5rem' }} />
-                <input type="number" placeholder="Max Capacity" value={newTour.maxCapacity} onChange={(e) => setNewTour({...newTour, maxCapacity: parseInt(e.target.value)})} required style={{ padding: '0.5rem' }} />
-                <input type="date" placeholder="Start Date" value={newTour.startDate} onChange={(e) => setNewTour({...newTour, startDate: e.target.value})} required style={{ padding: '0.5rem' }} />
-                <input type="date" placeholder="End Date" value={newTour.endDate} onChange={(e) => setNewTour({...newTour, endDate: e.target.value})} required style={{ padding: '0.5rem' }} />
-                <select value={newTour.status} onChange={(e) => setNewTour({...newTour, status: e.target.value})} style={{ padding: '0.5rem' }}><option value="draft">Draft</option><option value="published">Published</option></select>
+              <div className="form-grid">
+                <input type="text" placeholder="Tour Name" value={newTour.name} onChange={(e) => setNewTour({...newTour, name: e.target.value})} required />
+                <input type="text" placeholder="Destination" value={newTour.destination} onChange={(e) => setNewTour({...newTour, destination: e.target.value})} required />
+                <input type="number" placeholder="Duration (days)" value={newTour.durationDays} onChange={(e) => setNewTour({...newTour, durationDays: parseInt(e.target.value)})} />
+                <input type="number" placeholder="Price (USD)" value={newTour.price} onChange={(e) => setNewTour({...newTour, price: parseInt(e.target.value)})} />
+                <input type="number" placeholder="Max Capacity" value={newTour.maxCapacity} onChange={(e) => setNewTour({...newTour, maxCapacity: parseInt(e.target.value)})} />
+                <input type="date" placeholder="Start Date" value={newTour.startDate} onChange={(e) => setNewTour({...newTour, startDate: e.target.value})} />
+                <input type="date" placeholder="End Date" value={newTour.endDate} onChange={(e) => setNewTour({...newTour, endDate: e.target.value})} />
+                <select value={newTour.status} onChange={(e) => setNewTour({...newTour, status: e.target.value})}>
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
               </div>
-              <textarea placeholder="Itinerary" value={newTour.itineraryText} onChange={(e) => setNewTour({...newTour, itineraryText: e.target.value})} rows="3" style={{ width: '100%', marginTop: '1rem', padding: '0.5rem' }} />
-              <textarea placeholder="What's Included" value={newTour.included} onChange={(e) => setNewTour({...newTour, included: e.target.value})} rows="2" style={{ width: '100%', marginTop: '1rem', padding: '0.5rem' }} />
-              <textarea placeholder="What's Not Included" value={newTour.notIncluded} onChange={(e) => setNewTour({...newTour, notIncluded: e.target.value})} rows="2" style={{ width: '100%', marginTop: '1rem', padding: '0.5rem' }} />
-              <button type="submit" style={{ marginTop: '1rem', padding: '0.5rem 1rem', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Save Tour</button>
+              <textarea placeholder="Itinerary" value={newTour.itineraryText} onChange={(e) => setNewTour({...newTour, itineraryText: e.target.value})} rows="3" />
+              <textarea placeholder="What's Included" value={newTour.included} onChange={(e) => setNewTour({...newTour, included: e.target.value})} rows="2" />
+              <textarea placeholder="What's Not Included" value={newTour.notIncluded} onChange={(e) => setNewTour({...newTour, notIncluded: e.target.value})} rows="2" />
+              <button type="submit" className="btn-save">Save Tour</button>
             </form>
           )}
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f2f2f2' }}>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Name</th>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Destination</th>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Price (USD)</th>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Status</th>
-                <th style={{ padding: '0.5rem', textAlign: 'left' }}>Actions</th>
-               </tr>
-            </thead>
-            <tbody>
-              {tours.map((tour) => (
-                <tr key={tour._id} style={{ borderBottom: '1px solid #ddd' }}>
-                  <td style={{ padding: '0.5rem' }}>{tour.name}</td>
-                  <td style={{ padding: '0.5rem' }}>{tour.destination}</td>
-                  <td style={{ padding: '0.5rem' }}>USD {tour.price?.toLocaleString() || 0}</td>
-                  <td style={{ padding: '0.5rem' }}>{tour.status}</td>
-                  <td style={{ padding: '0.5rem' }}>
-                    <button onClick={() => confirmDelete(tour, 'tour')} style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}>Delete</button>
-                  </td>
-                 </tr>
-              ))}
-            </tbody>
-          </table>
+
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Destination</th>
+                  <th>Duration</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tours.map((tour) => (
+                  <tr key={tour._id || tour.id}>
+                    <td>{tour.name}</td>
+                    <td>{tour.destination}</td>
+                    <td>{tour.durationDays} days</td>
+                    <td>${tour.price}</td>
+                    <td><span className={`status-badge ${tour.status}`}>{tour.status}</span></td>
+                    <td>
+                      <button className="btn-delete" onClick={() => confirmDelete(tour, 'tour')}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-      
+
+      {/* Bookings Tab */}
       {activeTab === 'bookings' && (
-        <div>
-          {bookings.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}><p>No bookings yet.</p></div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f2f2f2' }}>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Booking Code</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Customer</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Phone</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Activity</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Date</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Total (USD)</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Status</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Action</th>
-                   </tr>
-                </thead>
-                <tbody>
-                  {bookings.map((booking) => (
-                    <tr key={booking._id} style={{ borderBottom: '1px solid #ddd' }}>
-                      <td style={{ padding: '0.5rem' }}>{booking.bookingCode || 'N/A'}</td>
-                      <td style={{ padding: '0.5rem' }}>{booking.personalDetails?.fullName || booking.user?.fullName || 'N/A'}</td>
-                      <td style={{ padding: '0.5rem' }}>{booking.personalDetails?.phone || booking.user?.phone || 'N/A'}</td>
-                      <td style={{ padding: '0.5rem' }}>{booking.selectedActivities?.[0]?.activity?.name || 'N/A'}</td>
-                      <td style={{ padding: '0.5rem' }}>{booking.selectedActivities?.[0]?.selectedDate ? new Date(booking.selectedActivities[0].selectedDate).toLocaleDateString() : 'N/A'}</td>
-                      <td style={{ padding: '0.5rem' }}>USD {booking.totalPrice?.toLocaleString() || 0}</td>
-                      <td style={{ padding: '0.5rem' }}>
-                        <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '12px', backgroundColor: booking.status === 'confirmed' ? '#d4edda' : '#f8d7da', color: booking.status === 'confirmed' ? '#155724' : '#721c24' }}>{booking.status}</span>
-                      </td>
-                      <td style={{ padding: '0.5rem' }}>
-                        {booking.status === 'pending' && (
-                          <button onClick={() => verifyPayment(booking._id, booking.bookingCode, booking.personalDetails?.phone, booking.personalDetails?.fullName)} style={{ backgroundColor: '#2ecc71', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Verify Payment</button>
-                        )}
-                        {booking.status === 'confirmed' && <span style={{ color: 'green', fontSize: '12px' }}>Confirmed</span>}
-                      </td>
-                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <div className="admin-section">
+          <h2>All Bookings</h2>
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Booking Code</th>
+                  <th>Customer</th>
+                  <th>Phone</th>
+                  <th>Activity</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map((booking) => (
+                  <tr key={booking._id || booking.id}>
+                    <td><code>{booking.bookingCode}</code></td>
+                    <td>{booking.personalDetails?.fullName || booking.user?.fullName}</td>
+                    <td>{booking.personalDetails?.phone || booking.user?.phone}</td>
+                    <td>{booking.selectedActivities?.[0]?.activity?.name || 'N/A'}</td>
+                    <td>{booking.selectedActivities?.[0]?.selectedDate ? new Date(booking.selectedActivities[0].selectedDate).toLocaleDateString() : 'N/A'}</td>
+                    <td>${booking.totalPrice}</td>
+                    <td><span className={`status-badge ${booking.status}`}>{booking.status}</span></td>
+                    <td>
+                      {booking.status === 'pending' && (
+                        <button className="btn-verify" onClick={() => verifyPayment(booking._id, booking.bookingCode, booking.personalDetails?.fullName)}>
+                          Verify
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-      
-      {activeTab === 'users' && (
-        <div>
-          <div style={{ marginBottom: '1rem' }}><p><strong>Total Registered Users:</strong> {users.length}</p></div>
-          {users.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}><p>No users found.</p></div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f2f2f2' }}>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Full Name</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Email</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Phone Number</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Role</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Registered On</th>
-                   </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user._id} style={{ borderBottom: '1px solid #ddd' }}>
-                      <td style={{ padding: '0.5rem' }}>{user.fullName}</td>
-                      <td style={{ padding: '0.5rem' }}>{user.email}</td>
-                      <td style={{ padding: '0.5rem' }}>{user.phone ? <a href={`tel:${user.phone}`} style={{ color: '#3498db', textDecoration: 'none' }}>📞 {user.phone}</a> : 'Not provided'}</td>
-                      <td style={{ padding: '0.5rem' }}><span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '12px', backgroundColor: user.role === 'admin' ? '#cce5ff' : '#d4edda', color: user.role === 'admin' ? '#004085' : '#155724' }}>{user.role}</span></td>
-                      <td style={{ padding: '0.5rem' }}>{new Date(user.createdAt).toLocaleDateString()}</td>
-                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-      
+
+      {/* Payments Tab */}
       {activeTab === 'payments' && (
-        <div>
-          <h3>Pending Payment Verifications</h3>
-          {paymentRequests.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}><p>No pending payment requests.</p></div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f2f2f2' }}>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Date</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Customer</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Phone</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Booking Code</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Amount</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Reference</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Action</th>
-                   </tr>
-                </thead>
-                <tbody>
-                  {paymentRequests.map((payment) => (
-                    <tr key={payment._id} style={{ borderBottom: '1px solid #ddd' }}>
-                      <td style={{ padding: '0.5rem' }}>{new Date(payment.createdAt).toLocaleString()}</td>
-                      <td style={{ padding: '0.5rem' }}>{payment.customerName}</td>
-                      <td style={{ padding: '0.5rem' }}>{payment.customerPhone}</td>
-                      <td style={{ padding: '0.5rem' }}>{payment.bookingCode}</td>
-                      <td style={{ padding: '0.5rem' }}>USD {payment.amount?.toLocaleString()}</td>
-                      <td style={{ padding: '0.5rem' }}>{payment.paymentReference}</td>
-                      <td style={{ padding: '0.5rem' }}>
-                        <button onClick={() => verifyPayment(payment._id, payment.bookingCode, payment.customerPhone, payment.customerName)} style={{ backgroundColor: '#2ecc71', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Verify &amp; Confirm</button>
-                      </td>
-                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <div className="admin-section">
+          <h2>Pending Payment Verifications</h2>
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Phone</th>
+                  <th>Booking Code</th>
+                  <th>Amount</th>
+                  <th>Reference</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paymentRequests.map((payment) => (
+                  <tr key={payment._id || payment.id}>
+                    <td>{new Date(payment.createdAt).toLocaleDateString()}</td>
+                    <td>{payment.customerName}</td>
+                    <td>{payment.customerPhone}</td>
+                    <td><code>{payment.bookingCode}</code></td>
+                    <td>${payment.amount}</td>
+                    <td><code>{payment.paymentReference}</code></td>
+                    <td>
+                      <button className="btn-verify" onClick={() => verifyPayment(payment._id, payment.bookingCode, payment.customerName)}>
+                        Verify & Confirm
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Users Tab */}
+      {activeTab === 'users' && (
+        <div className="admin-section">
+          <h2>Registered Users</h2>
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Role</th>
+                  <th>Registered On</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user._id || user.id}>
+                    <td>{user.fullName}</td>
+                    <td>{user.email}</td>
+                    <td>{user.phone || '—'}</td>
+                    <td><span className={`role-badge ${user.role}`}>{user.role}</span></td>
+                    <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && itemToDelete && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000
-        }} onClick={() => setShowDeleteConfirm(false)}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            maxWidth: '450px',
-            width: '90%',
-            padding: '30px',
-            textAlign: 'center'
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{
-              width: '70px',
-              height: '70px',
-              backgroundColor: '#e74c3c',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px'
-            }}>
-              <span style={{ fontSize: '40px' }}>⚠️</span>
-            </div>
-            <h2 style={{ color: '#2c3e50', marginBottom: '10px' }}>Delete {deleteType === 'activity' ? 'Activity' : 'Tour'}?</h2>
-            <p style={{ color: '#666', marginBottom: '10px' }}>
-              Are you sure you want to delete <strong>"{itemToDelete.name}"</strong>?
-            </p>
-            <p style={{ color: '#e74c3c', fontSize: '14px', marginBottom: '20px' }}>
-              This action cannot be undone!
-            </p>
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <button 
-                onClick={() => setShowDeleteConfirm(false)}
-                style={{ flex: 1, padding: '12px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}
-              >
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon">⚠️</div>
+            <h2>Delete {deleteType === 'activity' ? 'Activity' : 'Tour'}?</h2>
+            <p>Are you sure you want to delete <strong>"{itemToDelete.name}"</strong>?</p>
+            <p className="modal-warning">This action cannot be undone!</p>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setShowDeleteConfirm(false)}>
                 Cancel
               </button>
-              <button 
-                onClick={handleDeleteConfirm}
-                style={{ flex: 1, padding: '12px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
-              >
+              <button className="btn-confirm-delete" onClick={handleDeleteConfirm}>
                 Yes, Delete
               </button>
             </div>

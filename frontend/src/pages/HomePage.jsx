@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ActivityDetailModal from '../components/ActivityDetailModal';
+import ActivityCard from '../components/ActivityCard';
 import { API_URL } from '../config';
 import './HomePage.css';
 
@@ -10,6 +12,10 @@ const HomePage = () => {
   const [user, setUser] = useState(null);
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
   const navigate = useNavigate();
+
+  const openActivityModal = (activity) => {
+    setSelectedActivity(activity);
+  };
 
   const backgroundImages = [
     '/images/viphya-hike.jpg',
@@ -290,59 +296,12 @@ const HomePage = () => {
           </div>
           
           <div className="activities-grid">
-            {activities.map((activity, index) => (
-              <div
-                key={activity._id}
-                className="activity-card"
-                style={{ animationDelay: `${index * 0.1}s` }}
-                onClick={() => setSelectedActivity(activity)}
-              >
-                <div className="activity-image-wrapper">
-                  <img
-                    src={activity.mainImage || 'https://via.placeholder.com/400x300?text=No+Image'}
-                    alt={activity.name}
-                    className="activity-image"
-                    onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=No+Image'; }}
-                  />
-                  <div className="activity-overlay">
-                    <button className="view-details-btn">Quick View</button>
-                  </div>
-                  <div className="activity-tag">Featured</div>
-                </div>
-                <div className="activity-content">
-                  <div className="activity-category">{activity.category || 'Adventure'}</div>
-                  <h3 className="activity-title">{activity.name}</h3>
-                  <div className="activity-location">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                      <circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    <span>{activity.location}</span>
-                  </div>
-                  <p className="activity-description">
-                    {activity.description?.substring(0, 100)}...
-                  </p>
-                  <div className="activity-footer">
-                    <div className="activity-price">
-                      <span className="price-amount">${activity.pricePerDay || activity.price}</span>
-                      <span className="price-period">/person</span>
-                    </div>
-                    <div className="activity-rating">
-                      <span className="rating-stars">★★★★★</span>
-                      <span className="rating-count">({activity.ratingCount || 10})</span>
-                    </div>
-                  </div>
-                  <button 
-                    className="book-now-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedActivity(activity);
-                    }}
-                  >
-                    Book This Experience →
-                  </button>
-                </div>
-              </div>
+            {activities.slice(0, 6).map((activity, index) => (
+              <ActivityCard 
+                key={activity._id} 
+                activity={activity} 
+                onBookClick={openActivityModal}
+              />
             ))}
           </div>
           
@@ -413,6 +372,14 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {selectedActivity && (
+        <ActivityDetailModal
+          activity={selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+          user={user}
+        />
+      )}
     </div>
   );
 };

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
+import './UserProfilePage.css';
 
 const UserProfilePage = () => {
-  const { user, token } = useAuth();
+  const { user, token, login } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -22,7 +23,9 @@ const UserProfilePage = () => {
   });
   
   const [bookings, setBookings] = useState([]);
+  const [customBookings, setCustomBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [cancelling, setCancelling] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -35,17 +38,29 @@ const UserProfilePage = () => {
   }, [user]);
 
   useEffect(() => {
-    if (activeTab === 'bookings') {
-      fetchBookings();
+    if (activeTab === 'bookings' && user) {
+      fetchAllBookings();
     }
-  }, [activeTab]);
+  }, [activeTab, user]);
 
-  const fetchBookings = async () => {
+  const fetchAllBookings = async () => {
     setLoadingBookings(true);
     try {
-      const response = await fetch(`${API_URL}/api/custom-bookings/user/${user.id}`);
-      const data = await response.json();
-      setBookings(data);
+      // Fetch both regular bookings and custom bookings
+      const [regularRes, customRes] = await Promise.all([
+        fetch(`${API_URL}/api/bookings/user/${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/api/custom-bookings/user/${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+      
+      const regularData = regularRes.ok ? await regularRes.json() : [];
+      const customData = customRes.ok ? await customRes.json() : [];
+      
+      setBookings(regularData);
+      setCustomBookings(customData);
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
@@ -73,12 +88,37 @@ const UserProfilePage = () => {
     setMessage('');
     setError('');
     
-    // Backend does not expose /api/users/profile, so update cached data only
-    const updatedUser = { ...user, fullName: profileData.fullName, phone: profileData.phone };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    setMessage('Profile updated locally. Backend update endpoint is unavailable.');
-    setTimeout(() => setMessage(''), 3000);
-    setLoading(false);
+    try {
+      const response = await fetch(`${API_URL}/api/users/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fullName: profileData.fullName,
+          phone: profileData.phone
+        })
+      });
+      
+      if (response.ok) {
+        const updatedUser = await response.json();
+        // Update local user data
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const newUserData = { ...storedUser, fullName: profileData.fullName, phone: profileData.phone };
+        localStorage.setItem('user', JSON.stringify(newUserData));
+        setMessage('Profile updated successfully!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Update failed');
+      }
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const changePassword = async (e) => {
@@ -100,235 +140,334 @@ const UserProfilePage = () => {
     setMessage('');
     setError('');
     
-    // Backend does not have /api/users/change-password, so this action cannot be completed.
-    setError('Password change is unavailable because the backend does not support this endpoint.');
-    setTimeout(() => setError(''), 5000);
-    setLoading(false);
+    try {
+      const response = await fetch(`${API_URL}/api/users/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
+      });
+      
+      if (response.ok) {
+        setMessage('Password changed successfully!');
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Password change failed');
+      }
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelBooking = async (bookingId, type) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    
+    setCancelling(bookingId);
+    try {
+      const endpoint = type === 'custom' 
+        ? `${API_URL}/api/custom-bookings/${bookingId}/cancel`
+        : `${API_URL}/api/bookings/${bookingId}/cancel`;
+      
+      const response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        await fetchAllBookings();
+        setMessage('Booking cancelled successfully');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        throw new Error('Cancellation failed');
+      }
+    } catch (err) {
+      setError('Failed to cancel booking');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setCancelling(null);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      confirmed: { class: 'status-confirmed', text: 'Confirmed' },
+      pending: { class: 'status-pending', text: 'Pending' },
+      cancelled: { class: 'status-cancelled', text: 'Cancelled' },
+      completed: { class: 'status-completed', text: 'Completed' }
+    };
+    const config = statusConfig[status] || statusConfig.pending;
+    return <span className={`status-badge ${config.class}`}>{config.text}</span>;
   };
 
   return (
-    <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', padding: '40px 20px' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <h1 style={{ color: '#2c3e50', marginBottom: '8px' }}>My Profile</h1>
-        <p style={{ color: '#666', marginBottom: '32px' }}>Manage your account information and view your bookings</p>
-        
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid #ddd', paddingBottom: '12px' }}>
+    <div className="profile-page">
+      <div className="profile-container">
+        {/* Header */}
+        <div className="profile-header">
+          <div className="profile-avatar">👤</div>
+          <h1 className="profile-title">My Profile</h1>
+          <p className="profile-subtitle">Manage your account information and view your bookings</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="profile-tabs">
           <button
+            className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
-            style={{
-              padding: '10px 24px',
-              backgroundColor: activeTab === 'profile' ? '#3498db' : 'white',
-              color: activeTab === 'profile' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
           >
+            <span className="tab-icon">📝</span>
             Profile Information
           </button>
           <button
+            className={`tab-btn ${activeTab === 'password' ? 'active' : ''}`}
             onClick={() => setActiveTab('password')}
-            style={{
-              padding: '10px 24px',
-              backgroundColor: activeTab === 'password' ? '#3498db' : 'white',
-              color: activeTab === 'password' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
           >
+            <span className="tab-icon">🔒</span>
             Change Password
           </button>
           <button
+            className={`tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
             onClick={() => setActiveTab('bookings')}
-            style={{
-              padding: '10px 24px',
-              backgroundColor: activeTab === 'bookings' ? '#3498db' : 'white',
-              color: activeTab === 'bookings' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
           >
+            <span className="tab-icon">📅</span>
             My Bookings
           </button>
         </div>
-        
+
+        {/* Messages */}
+        {message && (
+          <div className="alert alert-success">
+            <span className="alert-icon">✓</span>
+            <span>{message}</span>
+          </div>
+        )}
+        {error && (
+          <div className="alert alert-error">
+            <span className="alert-icon">⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Profile Tab */}
         {activeTab === 'profile' && (
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            {message && (
-              <div style={{ backgroundColor: '#d4edda', color: '#155724', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
-                {message}
+          <div className="profile-card">
+            <form onSubmit={updateProfile} className="profile-form">
+              <div className="form-group">
+                <label>Full Name</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">👤</span>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={profileData.fullName}
+                    onChange={handleProfileChange}
+                    required
+                    placeholder="Your full name"
+                  />
+                </div>
               </div>
-            )}
-            {error && (
-              <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
-                {error}
+
+              <div className="form-group">
+                <label>Email Address</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">📧</span>
+                  <input
+                    type="email"
+                    value={profileData.email}
+                    disabled
+                    className="input-disabled"
+                  />
+                </div>
+                <small className="form-hint">Email cannot be changed</small>
               </div>
-            )}
-            
-            <form onSubmit={updateProfile}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Full Name</label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={profileData.fullName}
-                  onChange={handleProfileChange}
-                  required
-                  style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
-                />
+
+              <div className="form-group">
+                <label>Phone Number</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">📞</span>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={profileData.phone}
+                    onChange={handleProfileChange}
+                    placeholder="Your phone number"
+                  />
+                </div>
               </div>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Email Address</label>
-                <input
-                  type="email"
-                  value={profileData.email}
-                  disabled
-                  style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px', backgroundColor: '#f5f5f5' }}
-                />
-                <small style={{ color: '#666' }}>Email cannot be changed</small>
-              </div>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Phone Number</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={profileData.phone}
-                  onChange={handleProfileChange}
-                  style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
-                />
-              </div>
-              
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  backgroundColor: '#2ecc71',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}
-              >
-                {loading ? 'Saving...' : 'Save Changes'}
+
+              <button type="submit" className="btn-save" disabled={loading}>
+                {loading ? 'Saving...' : 'Save Changes →'}
               </button>
             </form>
           </div>
         )}
-        
+
+        {/* Password Tab */}
         {activeTab === 'password' && (
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            {message && (
-              <div style={{ backgroundColor: '#d4edda', color: '#155724', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
-                {message}
+          <div className="profile-card">
+            <form onSubmit={changePassword} className="profile-form">
+              <div className="form-group">
+                <label>Current Password</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">🔒</span>
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    placeholder="Enter current password"
+                  />
+                </div>
               </div>
-            )}
-            {error && (
-              <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
-                {error}
+
+              <div className="form-group">
+                <label>New Password</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">🔒</span>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <small className="form-hint">Minimum 6 characters, include uppercase and numbers</small>
               </div>
-            )}
-            
-            <form onSubmit={changePassword}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Current Password</label>
-                <input
-                  type="password"
-                  name="currentPassword"
-                  value={passwordData.currentPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
-                />
+
+              <div className="form-group">
+                <label>Confirm New Password</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">🔒</span>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    placeholder="Confirm new password"
+                  />
+                </div>
+                {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
+                  <div className="input-error">Passwords do not match</div>
+                )}
               </div>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>New Password</label>
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
-                />
-                <small style={{ color: '#666' }}>Minimum 6 characters</small>
-              </div>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Confirm New Password</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={passwordData.confirmPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
-                />
-              </div>
-              
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  backgroundColor: '#e67e22',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}
-              >
-                {loading ? 'Changing...' : 'Change Password'}
+
+              <button type="submit" className="btn-change-password" disabled={loading}>
+                {loading ? 'Changing...' : 'Change Password →'}
               </button>
             </form>
           </div>
         )}
-        
+
+        {/* Bookings Tab */}
         {activeTab === 'bookings' && (
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '30px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ margin: '0 0 20px 0', color: '#2c3e50' }}>My Activity Bookings</h3>
-            
+          <div className="bookings-card">
+            <h3 className="bookings-title">
+              <span className="title-icon">📅</span>
+              My Activity Bookings
+            </h3>
+
             {loadingBookings ? (
-              <p>Loading your bookings...</p>
-            ) : bookings.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <p>You have no bookings yet.</p>
-                <a href="/activities" style={{ color: '#3498db', textDecoration: 'none' }}>Browse Activities →</a>
+              <div className="loading-state">
+                <div className="loading-spinner-small"></div>
+                <p>Loading your bookings...</p>
+              </div>
+            ) : bookings.length === 0 && customBookings.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">🗺️</div>
+                <h4>No Bookings Yet</h4>
+                <p>You haven't made any bookings. Start your adventure today!</p>
+                <a href="/activities" className="btn-browse">Browse Activities →</a>
               </div>
             ) : (
-              bookings.map((booking) => (
-                <div key={booking._id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', marginBottom: '15px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h4 style={{ margin: 0, color: '#e67e22' }}>{booking.selectedActivities[0]?.activity?.name}</h4>
-                    <span style={{
-                      padding: '4px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      backgroundColor: booking.status === 'confirmed' ? '#d4edda' : '#f8d7da',
-                      color: booking.status === 'confirmed' ? '#155724' : '#721c24'
-                    }}>
-                      {booking.status}
-                    </span>
+              <div className="bookings-list">
+                {/* Regular Bookings */}
+                {bookings.map((booking) => (
+                  <div className="booking-card" key={booking.id}>
+                    <div className="booking-header">
+                      <div className="booking-icon">🏕️</div>
+                      <div className="booking-info">
+                        <h4>{booking.tourId?.name || 'Tour Booking'}</h4>
+                        <p className="booking-code">Booking Code: {booking.id}</p>
+                      </div>
+                      {getStatusBadge(booking.status)}
+                    </div>
+                    <div className="booking-details">
+                      <div className="booking-detail">
+                        <span className="detail-label">Travel Date:</span>
+                        <span className="detail-value">{new Date(booking.travelDate).toLocaleDateString()}</span>
+                      </div>
+                      <div className="booking-detail">
+                        <span className="detail-label">Travelers:</span>
+                        <span className="detail-value">{booking.numTravelers}</span>
+                      </div>
+                      <div className="booking-detail">
+                        <span className="detail-label">Total Price:</span>
+                        <span className="detail-value">${booking.totalPrice}</span>
+                      </div>
+                    </div>
+                    {booking.status !== 'cancelled' && (
+                      <button 
+                        className="btn-cancel"
+                        onClick={() => cancelBooking(booking.id, 'regular')}
+                        disabled={cancelling === booking.id}
+                      >
+                        {cancelling === booking.id ? 'Cancelling...' : 'Cancel Booking'}
+                      </button>
+                    )}
                   </div>
-                  <p style={{ margin: '5px 0' }}><strong>Booking Code:</strong> {booking.bookingCode}</p>
-                  <p style={{ margin: '5px 0' }}><strong>Date:</strong> {new Date(booking.selectedActivities[0]?.selectedDate).toLocaleDateString()}</p>
-                  <p style={{ margin: '5px 0' }}><strong>Days:</strong> {booking.selectedActivities[0]?.numberOfDays}</p>
-                  <p style={{ margin: '5px 0' }}><strong>People:</strong> {booking.selectedActivities[0]?.numberOfPeople}</p>
-                  <p style={{ margin: '5px 0' }}><strong>Total:</strong> MK {booking.totalPrice?.toLocaleString()}</p>
-                </div>
-              ))
+                ))}
+
+                {/* Custom Bookings */}
+                {customBookings.map((booking) => (
+                  <div className="booking-card" key={booking.id}>
+                    <div className="booking-header">
+                      <div className="booking-icon">🎒</div>
+                      <div className="booking-info">
+                        <h4>Custom Booking</h4>
+                        <p className="booking-code">Booking Code: {booking.bookingCode}</p>
+                      </div>
+                      {getStatusBadge(booking.status)}
+                    </div>
+                    <div className="booking-details">
+                      <div className="booking-detail">
+                        <span className="detail-label">Activities:</span>
+                        <span className="detail-value">{booking.selectedActivities?.length || 0} activities</span>
+                      </div>
+                      <div className="booking-detail">
+                        <span className="detail-label">Total Price:</span>
+                        <span className="detail-value">MK {booking.totalPrice?.toLocaleString()}</span>
+                      </div>
+                      <div className="booking-detail">
+                        <span className="detail-label">Booked on:</span>
+                        <span className="detail-value">{new Date(booking.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    {booking.status !== 'cancelled' && booking.status !== 'confirmed' && (
+                      <button 
+                        className="btn-cancel"
+                        onClick={() => cancelBooking(booking.id, 'custom')}
+                        disabled={cancelling === booking.id}
+                      >
+                        {cancelling === booking.id ? 'Cancelling...' : 'Cancel Booking'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}

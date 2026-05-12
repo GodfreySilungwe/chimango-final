@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
+import './PaymentPage.css';
 
 const PaymentPage = () => {
   const location = useLocation();
@@ -10,12 +11,14 @@ const PaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [paymentReference, setPaymentReference] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState('');
 
   const bankDetails = {
     bankName: 'National Bank of Malawi',
     accountName: 'Chimango Tour',
     accountNumber: '1006924529',
-    branch: 'Lilongwe City Centre'
+    branch: 'Lilongwe City Centre',
+    swiftCode: 'NBMAMWMW'
   };
 
   const mobileMoneyNumbers = {
@@ -90,8 +93,10 @@ const PaymentPage = () => {
         methodName = 'National Bank Transfer';
       } else if (paymentMethod === 'airtel') {
         methodName = 'Airtel Money';
-      } else {
+      } else if (paymentMethod === 'tnm') {
         methodName = 'TNM Mpamba';
+      } else {
+        methodName = selectedWallet === 'airtel' ? 'Airtel Money' : 'TNM Mpamba';
       }
 
       const paymentData = {
@@ -132,7 +137,7 @@ const PaymentPage = () => {
     }
   };
 
-  // PayChangu Payment Handler - MWK only
+  // PayChangu Payment Handler
   const handlePayChanguPayment = () => {
     const amountMWK = Math.round(bookingData.totalPrice * exchangeRate);
     const paymentLink = "https://pay.paychangu.com/SC-CWC5T0";
@@ -144,34 +149,21 @@ const PaymentPage = () => {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
-        <div style={{ 
-          width: '50px', 
-          height: '50px', 
-          border: '5px solid #f3f3f3', 
-          borderTop: '5px solid #e67e22', 
-          borderRadius: '50%', 
-          animation: 'spin 1s linear infinite',
-          margin: '0 auto 20px'
-        }} />
+      <div className="payment-loading">
+        <div className="loading-spinner"></div>
         <h2>Loading payment details...</h2>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     );
   }
 
   if (!bookingData) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
+      <div className="payment-error">
+        <div className="error-icon">🔍</div>
         <h2>No booking information found</h2>
         <p>Please complete your booking first.</p>
-        <button onClick={() => navigate('/activities')} style={{ padding: '10px 20px', backgroundColor: '#e67e22', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-          Back to Activities
+        <button onClick={() => navigate('/activities')} className="btn-back">
+          Browse Activities →
         </button>
       </div>
     );
@@ -180,216 +172,240 @@ const PaymentPage = () => {
   const amountMWK = Math.round(bookingData.totalPrice * exchangeRate);
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      backgroundColor: '#f0f2f5', 
-      padding: '40px 20px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
-    }}>
-      <div style={{ 
-        backgroundColor: 'white', 
-        borderRadius: '12px', 
-        maxWidth: '500px', 
-        width: '100%',
-        padding: '30px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-      }}>
-        <h2 style={{ color: '#2c3e50', marginBottom: '10px', textAlign: 'center' }}>Complete Your Payment</h2>
-        
-        <div style={{ 
-          backgroundColor: '#f8f9fa', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          marginBottom: '20px',
-          textAlign: 'center'
-        }}>
-          <p style={{ margin: 0 }}><strong>Booking Code:</strong> {bookingData.bookingCode}</p>
-          <p style={{ margin: '5px 0 0' }}><strong>Amount (USD):</strong> <span style={{ color: '#e67e22', fontSize: '24px', fontWeight: 'bold' }}>USD {bookingData.totalPrice}</span></p>
-          <p style={{ margin: '5px 0 0' }}><strong>Amount (MWK):</strong> <span style={{ color: '#2c3e50', fontSize: '18px', fontWeight: 'bold' }}>MWK {amountMWK.toLocaleString()}</span></p>
-          <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#666' }}>Activity: {bookingData.activityName}</p>
+    <div className="payment-page">
+      <div className="payment-container">
+        {/* Header */}
+        <div className="payment-header">
+          <div className="payment-icon">💳</div>
+          <h1 className="payment-title">Complete Your <span className="highlight">Payment</span></h1>
+          <p className="payment-subtitle">Secure payment to confirm your booking</p>
         </div>
 
-        <h3 style={{ fontSize: '16px', marginBottom: '15px' }}>Select Payment Method:</h3>
-
-        {/* PayChangu Option - MWK only */}
-        <div 
-          onClick={() => setPaymentMethod('paychangu')}
-          style={{
-            border: paymentMethod === 'paychangu' ? '2px solid #e67e22' : '1px solid #ddd',
-            borderRadius: '8px',
-            padding: '15px',
-            marginBottom: '15px',
-            cursor: 'pointer',
-            backgroundColor: paymentMethod === 'paychangu' ? '#fff8f0' : 'white'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input type="radio" checked={paymentMethod === 'paychangu'} readOnly />
-            <span style={{ fontWeight: 'bold' }}>💳 PayChangu (Card/Mobile Money) - MWK only</span>
-          </div>
-          {paymentMethod === 'paychangu' && (
-            <div style={{ marginTop: '15px' }}>
-              <button
-                onClick={handlePayChanguPayment}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  backgroundColor: '#e67e22',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}
-              >
-                Pay MWK {amountMWK.toLocaleString()} with PayChangu
-              </button>
+        {/* Booking Summary */}
+        <div className="booking-summary">
+          <h3 className="summary-title">Booking Summary</h3>
+          <div className="summary-grid">
+            <div className="summary-item">
+              <span className="summary-label">Booking Code</span>
+              <span className="summary-value">{bookingData.bookingCode}</span>
             </div>
-          )}
-        </div>
-
-        {/* Airtel Money - MWK only */}
-        <div 
-          onClick={() => setPaymentMethod('airtel')}
-          style={{
-            border: paymentMethod === 'airtel' ? '2px solid #e67e22' : '1px solid #ddd',
-            borderRadius: '8px',
-            padding: '15px',
-            marginBottom: '15px',
-            cursor: 'pointer',
-            backgroundColor: paymentMethod === 'airtel' ? '#fff8f0' : 'white'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input type="radio" checked={paymentMethod === 'airtel'} readOnly />
-            <span style={{ fontWeight: 'bold' }}>📱 Airtel Money</span>
-          </div>
-          {paymentMethod === 'airtel' && (
-            <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-              <p><strong>Send payment to:</strong> <span style={{ color: '#e67e22', fontSize: '18px' }}>{mobileMoneyNumbers.airtel}</span></p>
-              <p><strong>Reference:</strong> {bookingData.bookingCode}</p>
-              <p><strong>Amount:</strong> MWK {amountMWK.toLocaleString()}</p>
+            <div className="summary-item">
+              <span className="summary-label">Activity</span>
+              <span className="summary-value">{bookingData.activityName}</span>
             </div>
-          )}
-        </div>
-
-        {/* TNM Mpamba - MWK only */}
-        <div 
-          onClick={() => setPaymentMethod('tnm')}
-          style={{
-            border: paymentMethod === 'tnm' ? '2px solid #e67e22' : '1px solid #ddd',
-            borderRadius: '8px',
-            padding: '15px',
-            marginBottom: '15px',
-            cursor: 'pointer',
-            backgroundColor: paymentMethod === 'tnm' ? '#fff8f0' : 'white'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input type="radio" checked={paymentMethod === 'tnm'} readOnly />
-            <span style={{ fontWeight: 'bold' }}>📱 TNM Mpamba</span>
-          </div>
-          {paymentMethod === 'tnm' && (
-            <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-              <p><strong>Send payment to:</strong> <span style={{ color: '#e67e22', fontSize: '18px' }}>{mobileMoneyNumbers.tnm}</span></p>
-              <p><strong>Reference:</strong> {bookingData.bookingCode}</p>
-              <p><strong>Amount:</strong> MWK {amountMWK.toLocaleString()}</p>
+            {bookingData.selectedDate && (
+              <div className="summary-item">
+                <span className="summary-label">Travel Date</span>
+                <span className="summary-value">{new Date(bookingData.selectedDate).toLocaleDateString()}</span>
+              </div>
+            )}
+            <div className="summary-item">
+              <span className="summary-label">Customer</span>
+              <span className="summary-value">{bookingData.personalDetails?.fullName}</span>
             </div>
-          )}
-        </div>
-
-        {/* National Bank - MWK only */}
-        <div 
-          onClick={() => setPaymentMethod('bank')}
-          style={{
-            border: paymentMethod === 'bank' ? '2px solid #e67e22' : '1px solid #ddd',
-            borderRadius: '8px',
-            padding: '15px',
-            marginBottom: '20px',
-            cursor: 'pointer',
-            backgroundColor: paymentMethod === 'bank' ? '#fff8f0' : 'white'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input type="radio" checked={paymentMethod === 'bank'} readOnly />
-            <span style={{ fontWeight: 'bold' }}>🏦 National Bank Transfer</span>
           </div>
-          {paymentMethod === 'bank' && (
-            <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-              <p><strong>Bank:</strong> {bankDetails.bankName}</p>
-              <p><strong>Account Name:</strong> {bankDetails.accountName}</p>
-              <p><strong>Account Number:</strong> <span style={{ color: '#e67e22' }}>{bankDetails.accountNumber}</span></p>
-              <p><strong>Branch:</strong> {bankDetails.branch}</p>
-              <p><strong>Reference:</strong> {bookingData.bookingCode}</p>
-              <p><strong>Amount:</strong> MWK {amountMWK.toLocaleString()}</p>
-            </div>
-          )}
         </div>
 
+        {/* Amount Display */}
+        <div className="amount-display">
+          <div className="amount-card">
+            <div className="amount-label">Amount to Pay (USD)</div>
+            <div className="amount-value">${bookingData.totalPrice}</div>
+          </div>
+          <div className="amount-card amount-card-mwk">
+            <div className="amount-label">Amount to Pay (MWK)</div>
+            <div className="amount-value">{amountMWK.toLocaleString()} MWK</div>
+            <div className="amount-note">*Exchange rate: 1 USD = {exchangeRate} MWK</div>
+          </div>
+        </div>
+
+        {/* Payment Methods */}
+        <div className="payment-methods">
+          <h3 className="section-title">Select Payment Method</h3>
+          
+          {/* PayChangu Option */}
+          <div 
+            className={`payment-option ${paymentMethod === 'paychangu' ? 'selected' : ''}`}
+            onClick={() => setPaymentMethod('paychangu')}
+          >
+            <div className="payment-option-header">
+              <input 
+                type="radio" 
+                checked={paymentMethod === 'paychangu'} 
+                onChange={() => setPaymentMethod('paychangu')}
+              />
+              <div className="payment-option-icon">💳</div>
+              <div className="payment-option-info">
+                <span className="payment-option-title">PayChangu</span>
+                <span className="payment-option-desc">Card, Mobile Money, or Bank Transfer</span>
+              </div>
+            </div>
+            {paymentMethod === 'paychangu' && (
+              <div className="payment-option-details">
+                <div className="payment-instructions">
+                  <p>✓ Instant payment processing</p>
+                  <p>✓ Multiple payment options</p>
+                  <p>✓ Secure checkout</p>
+                </div>
+                <button className="btn-paychangu" onClick={handlePayChanguPayment}>
+                  Pay MWK {amountMWK.toLocaleString()} → 
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Airtel Money Option */}
+          <div 
+            className={`payment-option ${paymentMethod === 'airtel' ? 'selected' : ''}`}
+            onClick={() => setPaymentMethod('airtel')}
+          >
+            <div className="payment-option-header">
+              <input 
+                type="radio" 
+                checked={paymentMethod === 'airtel'} 
+                onChange={() => setPaymentMethod('airtel')}
+              />
+              <div className="payment-option-icon">📱</div>
+              <div className="payment-option-info">
+                <span className="payment-option-title">Airtel Money</span>
+                <span className="payment-option-desc">Pay using Airtel Money wallet</span>
+              </div>
+            </div>
+            {paymentMethod === 'airtel' && (
+              <div className="payment-option-details">
+                <div className="payment-instructions">
+                  <p>Send payment to Airtel Money number:</p>
+                  <div className="payment-number">{mobileMoneyNumbers.airtel}</div>
+                  <p><strong>Amount:</strong> MWK {amountMWK.toLocaleString()}</p>
+                  <p><strong>Reference:</strong> {bookingData.bookingCode}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* TNM Mpamba Option */}
+          <div 
+            className={`payment-option ${paymentMethod === 'tnm' ? 'selected' : ''}`}
+            onClick={() => setPaymentMethod('tnm')}
+          >
+            <div className="payment-option-header">
+              <input 
+                type="radio" 
+                checked={paymentMethod === 'tnm'} 
+                onChange={() => setPaymentMethod('tnm')}
+              />
+              <div className="payment-option-icon">📱</div>
+              <div className="payment-option-info">
+                <span className="payment-option-title">TNM Mpamba</span>
+                <span className="payment-option-desc">Pay using TNM Mpamba wallet</span>
+              </div>
+            </div>
+            {paymentMethod === 'tnm' && (
+              <div className="payment-option-details">
+                <div className="payment-instructions">
+                  <p>Send payment to TNM Mpamba number:</p>
+                  <div className="payment-number">{mobileMoneyNumbers.tnm}</div>
+                  <p><strong>Amount:</strong> MWK {amountMWK.toLocaleString()}</p>
+                  <p><strong>Reference:</strong> {bookingData.bookingCode}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bank Transfer Option */}
+          <div 
+            className={`payment-option ${paymentMethod === 'bank' ? 'selected' : ''}`}
+            onClick={() => setPaymentMethod('bank')}
+          >
+            <div className="payment-option-header">
+              <input 
+                type="radio" 
+                checked={paymentMethod === 'bank'} 
+                onChange={() => setPaymentMethod('bank')}
+              />
+              <div className="payment-option-icon">🏦</div>
+              <div className="payment-option-info">
+                <span className="payment-option-title">Bank Transfer (MWK)</span>
+                <span className="payment-option-desc">National Bank of Malawi</span>
+              </div>
+            </div>
+            {paymentMethod === 'bank' && (
+              <div className="payment-option-details">
+                <div className="bank-details">
+                  <div className="bank-row">
+                    <span className="bank-label">Bank Name:</span>
+                    <span className="bank-value">{bankDetails.bankName}</span>
+                  </div>
+                  <div className="bank-row">
+                    <span className="bank-label">Account Name:</span>
+                    <span className="bank-value">{bankDetails.accountName}</span>
+                  </div>
+                  <div className="bank-row">
+                    <span className="bank-label">Account Number:</span>
+                    <span className="bank-value bank-highlight">{bankDetails.accountNumber}</span>
+                  </div>
+                  <div className="bank-row">
+                    <span className="bank-label">Branch:</span>
+                    <span className="bank-value">{bankDetails.branch}</span>
+                  </div>
+                  <div className="bank-row">
+                    <span className="bank-label">Swift Code:</span>
+                    <span className="bank-value">{bankDetails.swiftCode}</span>
+                  </div>
+                </div>
+                <div className="payment-instructions">
+                  <p><strong>Amount:</strong> MWK {amountMWK.toLocaleString()}</p>
+                  <p><strong>Reference:</strong> {bookingData.bookingCode}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Payment Reference Input (for non-PayChangu methods) */}
         {paymentMethod && paymentMethod !== 'paychangu' && (
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Payment Reference / Transaction ID:</label>
+          <div className="reference-section">
+            <label className="reference-label">Transaction Reference Number</label>
             <input
               type="text"
+              className="reference-input"
               value={paymentReference}
               onChange={(e) => setPaymentReference(e.target.value)}
-              placeholder="Enter the reference number from your payment"
-              style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px' }}
+              placeholder="Enter the transaction reference from your payment"
             />
-            <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
-              Enter the transaction reference number you received after payment
-            </small>
+            <p className="reference-hint">
+              This reference number helps us verify your payment quickly
+            </p>
           </div>
         )}
 
-        <div style={{ backgroundColor: '#d4edda', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 8px 0', color: '#155724' }}>Instructions:</h4>
-          <ol style={{ margin: '0', paddingLeft: '20px', color: '#155724', fontSize: '13px' }}>
-            <li>Make payment of <strong>MWK {amountMWK.toLocaleString()}</strong> using your selected method</li>
-            <li>For PayChangu, you will be redirected to complete payment in MWK</li>
-            <li>For other methods, enter the transaction reference number after payment</li>
-            <li>Click "Submit Payment" (or "Pay with PayChangu")</li>
-            <li>Your booking will be confirmed after payment verification</li>
-          </ol>
-        </div>
-
+        {/* Action Buttons */}
         {paymentMethod && paymentMethod !== 'paychangu' && (
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div className="action-buttons">
             <button 
+              className="btn-cancel"
               onClick={() => navigate('/activities')}
-              style={{ 
-                flex: 1, 
-                padding: '12px', 
-                backgroundColor: '#95a5a6', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                cursor: 'pointer' 
-              }}
             >
               Cancel
             </button>
             <button 
+              className="btn-submit"
               onClick={handleSubmit} 
-              disabled={submitting || !paymentMethod || !paymentReference}
-              style={{ 
-                flex: 1, 
-                padding: '12px', 
-                backgroundColor: '#e67e22', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                cursor: (!paymentMethod || !paymentReference || submitting) ? 'not-allowed' : 'pointer',
-                opacity: (!paymentMethod || !paymentReference || submitting) ? 0.6 : 1
-              }}
+              disabled={submitting || !paymentReference}
             >
-              {submitting ? 'Processing...' : 'Submit Payment'}
+              {submitting ? 'Processing...' : 'Submit Payment →'}
             </button>
           </div>
         )}
+
+        {/* Security Notice */}
+        <div className="security-notice">
+          <span className="security-icon">🔒</span>
+          <div>
+            <strong>Secure Payment</strong>
+            <p>Your payment information is encrypted and secure. We never store your payment details.</p>
+          </div>
+        </div>
       </div>
     </div>
   );

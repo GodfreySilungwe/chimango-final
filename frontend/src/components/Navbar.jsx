@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
@@ -7,6 +7,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const navRef = useRef(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,6 +24,19 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
     setIsDropdownOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (navRef.current && !navRef.current.contains(event.target)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
 
   const handleLogout = () => {
     logout();
@@ -41,7 +55,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className={`luxury-navbar ${isScrolled ? 'scrolled' : ''}`}>
+    <nav ref={navRef} className={`luxury-navbar ${isScrolled ? 'scrolled' : ''}`}>
       <div className="nav-container">
         {/* Logo */}
         <Link to="/" className="nav-logo">
@@ -53,7 +67,7 @@ const Navbar = () => {
           </div>
           <div className="logo-text">
             <span className="logo-name">Chimango</span>
-            <span className="logo-tagline">Tour & Safari</span>
+            <span className="logo-tagline">Tours and Safari</span>
           </div>
         </Link>
 

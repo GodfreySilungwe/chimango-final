@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
+import './TourDetailPage.css';
 
 const TourDetailPage = () => {
   const { id } = useParams();
@@ -12,9 +13,11 @@ const TourDetailPage = () => {
   const [numTravelers, setNumTravelers] = useState(1);
   const [travelDate, setTravelDate] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     fetchTour();
+    window.scrollTo(0, 0);
   }, [id]);
 
   const fetchTour = async () => {
@@ -33,127 +36,315 @@ const TourDetailPage = () => {
   };
 
   const handleBooking = async () => {
-  if (!user) {
-    navigate('/login');
-    return;
-  }
-  
-  setBookingLoading(true);
-  try {
-    console.log('User object:', user); // Debug: see what user contains
+    if (!user) {
+      sessionStorage.setItem('redirectAfterLogin', `/tours/${id}`);
+      navigate('/login');
+      return;
+    }
     
-    await fetch(`${API_URL}/api/bookings`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        userId: user.id,
-        tourId: id,
-        travelDate,
-        numTravelers,
-        promoCode: ''
-      })
-    });
-    
-    alert('✅ Booking confirmed! Check your bookings page.');
-    navigate('/bookings');
-  } catch (error) {
-    console.error('Booking error:', error);
-    alert('Booking failed. Please try again.');
-  } finally {
-    setBookingLoading(false);
+    setBookingLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          tourId: id,
+          travelDate,
+          numTravelers,
+          promoCode: ''
+        })
+      });
+      
+      if (response.ok) {
+        alert('✅ Booking confirmed! Check your bookings page.');
+        navigate('/bookings');
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Booking failed');
+      }
+    } catch (error) {
+      console.error('Booking error:', error);
+      alert('Booking failed. Please try again.');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  const getMinDate = () => {
+    if (tour?.startDate) {
+      return tour.startDate.split('T')[0];
+    }
+    return new Date().toISOString().split('T')[0];
+  };
+
+  const getMaxDate = () => {
+    if (tour?.endDate) {
+      return tour.endDate.split('T')[0];
+    }
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    return nextYear.toISOString().split('T')[0];
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading tour details...</p>
+      </div>
+    );
   }
-};
-  if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading tour details...</div>;
-  if (!tour) return <div style={{ padding: '2rem', textAlign: 'center' }}>Tour not found</div>;
+
+  if (!tour) {
+    return (
+      <div className="error-container">
+        <div className="error-icon">🔍</div>
+        <h2>Tour Not Found</h2>
+        <p>The tour you're looking for doesn't exist or has been removed.</p>
+        <button onClick={() => navigate('/tours')} className="btn-back">
+          Browse Tours →
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <button onClick={() => navigate(-1)} style={{ marginBottom: '1rem', cursor: 'pointer' }}>← Back</button>
-      
-      <h1 style={{ color: '#2c3e50' }}>{tour.name}</h1>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
-        <div>
-          <p style={{ fontSize: '1.2rem', color: '#e74c3c' }}>📍 {tour.destination}</p>
-          <p>⏱️ {tour.durationDays} days</p>
-          
-          <div style={{ margin: '2rem 0' }}>
-            <h3>📋 Itinerary</h3>
-            <p style={{ lineHeight: '1.6' }}>{tour.itineraryText || 'Full itinerary will be provided upon booking.'}</p>
+    <div className="tour-detail-page">
+      {/* Hero Section */}
+      <div className="tour-hero">
+        <div className="tour-hero-overlay"></div>
+        <div className="tour-hero-content">
+          <div className="tour-badge">{tour.category || 'Adventure'}</div>
+          <h1 className="tour-title">{tour.name}</h1>
+          <div className="tour-meta">
+            <span className="tour-meta-item">
+              <span className="meta-icon">📍</span> {tour.destination}
+            </span>
+            <span className="tour-meta-item">
+              <span className="meta-icon">⏱️</span> {tour.durationDays} days
+            </span>
+            <span className="tour-meta-item">
+              <span className="meta-icon">⭐</span> {tour.rating || '4.8'} ({tour.reviewCount || 25} reviews)
+            </span>
           </div>
-          
-          <div style={{ margin: '2rem 0' }}>
-            <h3>✅ What's Included</h3>
-            <p>{tour.included || 'Contact us for details.'}</p>
-          </div>
-          
-          <div style={{ margin: '2rem 0' }}>
-            <h3>❌ Not Included</h3>
-            <p>{tour.notIncluded || 'Contact us for details.'}</p>
+          <div className="tour-price-hero">
+            <span className="price-label">From</span>
+            <span className="price-amount">${tour.price}</span>
+            <span className="price-period">/ person</span>
           </div>
         </div>
-        
-        <div style={{ 
-          border: '2px solid #3498db', 
-          borderRadius: '8px', 
-          padding: '1.5rem', 
-          backgroundColor: '#f8f9fa',
-          position: 'sticky',
-          top: '1rem',
-          height: 'fit-content'
-        }}>
-          <h3 style={{ margin: '0 0 1rem 0', color: '#2c3e50' }}>Book This Tour</h3>
-          <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#e67e22', margin: '0 0 1rem 0' }}>
-            ${tour.price} <span style={{ fontSize: '1rem', fontWeight: 'normal' }}>/ person</span>
-          </p>
-          
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Travel Date:</label>
-            <input
-              type="date"
-              value={travelDate}
-              onChange={(e) => setTravelDate(e.target.value)}
-              min={tour.startDate?.split('T')[0]}
-              max={tour.endDate?.split('T')[0]}
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ddd' }}
-            />
+      </div>
+
+      {/* Content Section */}
+      <div className="tour-content">
+        <div className="tour-main">
+          {/* Tab Navigation */}
+          <div className="tour-tabs">
+            <button 
+              className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+              onClick={() => setActiveTab('overview')}
+            >
+              Overview
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'itinerary' ? 'active' : ''}`}
+              onClick={() => setActiveTab('itinerary')}
+            >
+              Itinerary
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'included' ? 'active' : ''}`}
+              onClick={() => setActiveTab('included')}
+            >
+              What's Included
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
+              onClick={() => setActiveTab('reviews')}
+            >
+              Reviews
+            </button>
           </div>
-          
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Number of Travelers:</label>
-            <input
-              type="number"
-              min="1"
-              max={tour.maxCapacity}
-              value={numTravelers}
-              onChange={(e) => setNumTravelers(parseInt(e.target.value))}
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ddd' }}
-            />
+
+          {/* Tab Content */}
+          <div className="tab-content">
+            {activeTab === 'overview' && (
+              <div className="overview-content">
+                <h3>Tour Description</h3>
+                <p>{tour.description || 'Experience the beauty of Malawi with this amazing tour package.'}</p>
+                <div className="highlights">
+                  <h4>Highlights</h4>
+                  <ul>
+                    <li>✓ Expert local guides</li>
+                    <li>✓ Comfortable transportation</li>
+                    <li>✓ Handpicked accommodations</li>
+                    <li>✓ Authentic cultural experiences</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'itinerary' && (
+              <div className="itinerary-content">
+                <h3>Daily Itinerary</h3>
+                <p>{tour.itineraryText || 'Full itinerary will be provided upon booking.'}</p>
+                {tour.itinerary && (
+                  <div className="itinerary-days">
+                    {tour.itinerary.map((day, index) => (
+                      <div key={index} className="itinerary-day">
+                        <div className="day-number">Day {day.day}</div>
+                        <div className="day-title">{day.title}</div>
+                        <div className="day-description">{day.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'included' && (
+              <div className="included-content">
+                <div className="included-grid">
+                  <div className="included-section">
+                    <h3>✅ What's Included</h3>
+                    <ul>
+                      <li>Accommodation</li>
+                      <li>Meals as per itinerary</li>
+                      <li>Transportation</li>
+                      <li>Professional guide</li>
+                      <li>Park fees</li>
+                      <li>Activities as specified</li>
+                    </ul>
+                  </div>
+                  <div className="excluded-section">
+                    <h3>❌ Not Included</h3>
+                    <ul>
+                      <li>International flights</li>
+                      <li>Visa fees</li>
+                      <li>Travel insurance</li>
+                      <li>Personal expenses</li>
+                      <li>Tips and gratuities</li>
+                      <li>Optional activities</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'reviews' && (
+              <div className="reviews-content">
+                <div className="reviews-summary">
+                  <div className="rating-overall">
+                    <span className="rating-number">{tour.rating || '4.8'}</span>
+                    <span className="rating-stars">★★★★★</span>
+                    <span className="rating-count">Based on {tour.reviewCount || 25} reviews</span>
+                  </div>
+                </div>
+                <div className="reviews-list">
+                  <div className="review-card">
+                    <div className="review-header">
+                      <strong>Sarah Johnson</strong>
+                      <span className="review-rating">★★★★★</span>
+                    </div>
+                    <p>"An incredible experience! The guides were knowledgeable and the scenery was breathtaking."</p>
+                    <small>March 2025</small>
+                  </div>
+                  <div className="review-card">
+                    <div className="review-header">
+                      <strong>Michael Chen</strong>
+                      <span className="review-rating">★★★★★</span>
+                    </div>
+                    <p>"Well-organized tour with amazing accommodations. Highly recommend!"</p>
+                    <small>February 2025</small>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          
-          <div style={{ marginBottom: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #ddd' }}>
-            <strong>Total Price: ${(tour.price * numTravelers).toFixed(2)}</strong>
+        </div>
+
+        {/* Booking Sidebar */}
+        <div className="tour-sidebar">
+          <div className="booking-card">
+            <h3 className="booking-title">Book This Tour</h3>
+            <div className="booking-price">
+              <span className="price-label">Price per person</span>
+              <span className="price-amount">${tour.price}</span>
+            </div>
+
+            <div className="booking-form">
+              <div className="form-group">
+                <label>Travel Date</label>
+                <input
+                  type="date"
+                  value={travelDate}
+                  onChange={(e) => setTravelDate(e.target.value)}
+                  min={getMinDate()}
+                  max={getMaxDate()}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Number of Travelers</label>
+                <div className="traveler-selector">
+                  <button 
+                    className="traveler-btn"
+                    onClick={() => setNumTravelers(Math.max(1, numTravelers - 1))}
+                    disabled={numTravelers <= 1}
+                  >
+                    −
+                  </button>
+                  <span className="traveler-count">{numTravelers}</span>
+                  <button 
+                    className="traveler-btn"
+                    onClick={() => setNumTravelers(Math.min(tour.maxCapacity || 20, numTravelers + 1))}
+                    disabled={numTravelers >= (tour.maxCapacity || 20)}
+                  >
+                    +
+                  </button>
+                </div>
+                <small>Max {tour.maxCapacity || 20} travelers</small>
+              </div>
+
+              <div className="booking-total">
+                <span>Total Price</span>
+                <span className="total-amount">${(tour.price * numTravelers).toFixed(2)}</span>
+              </div>
+
+              <button
+                className="btn-book"
+                onClick={handleBooking}
+                disabled={bookingLoading || !travelDate}
+              >
+                {bookingLoading ? (
+                  <span className="btn-loading">Processing...</span>
+                ) : (
+                  'Book Now →'
+                )}
+              </button>
+
+              <div className="booking-guarantee">
+                <span className="guarantee-icon">🔒</span>
+                <div>
+                  <strong>Secure Booking</strong>
+                  <p>Your payment is safe and secure</p>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <button
-            onClick={handleBooking}
-            disabled={bookingLoading}
-            style={{ 
-              width: '100%', 
-              backgroundColor: '#e67e22', 
-              color: 'white', 
-              border: 'none', 
-              padding: '0.75rem', 
-              borderRadius: '4px', 
-              cursor: 'pointer', 
-              fontSize: '1.1rem',
-              fontWeight: 'bold'
-            }}
-          >
-            {bookingLoading ? 'Processing...' : 'Book Now'}
-          </button>
+
+          {/* Need Help Card */}
+          <div className="help-card">
+            <h4>Need Help?</h4>
+            <p>Have questions about this tour?</p>
+            <button className="btn-help" onClick={() => navigate('/contact')}>
+              Contact Us →
+            </button>
+          </div>
         </div>
       </div>
     </div>

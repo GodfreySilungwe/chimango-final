@@ -1,16 +1,40 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 
 const CustomBookingsPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    preferredDate: '',
+    numberOfPeople: 1,
+    location: '',
+    travelStyle: 'Adventure',
+    budget: '',
+    specialRequests: '',
+    airportPickup: false
+  });
+  const [formError, setFormError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (user && user.id) {
       fetchBookings();
+      setFormData((prev) => ({
+        ...prev,
+        fullName: user.fullName || prev.fullName,
+        email: user.email || prev.email
+      }));
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -47,6 +71,77 @@ const CustomBookingsPage = () => {
     }
   };
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setFormError('');
+    setSuccessMessage('');
+
+    if (!formData.fullName || !formData.email || !formData.preferredDate || !formData.location) {
+      setFormError('Please fill in your name, email, preferred date, and destination.');
+      return;
+    }
+
+    if (!user?.id) {
+      sessionStorage.setItem('pendingCustomJourney', JSON.stringify(formData));
+      window.location.href = '/login?redirect=custom-booking';
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const newBookingCode = 'CHM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      const bookingData = {
+        userId: user.id,
+        selectedActivities: [
+          {
+            activity: null,
+            numberOfDays: 1,
+            numberOfPeople: formData.numberOfPeople,
+            totalPrice: 0,
+            selectedDate: new Date(formData.preferredDate)
+          }
+        ],
+        totalPrice: 0,
+        specialRequests: `Destination: ${formData.location}. Travel style: ${formData.travelStyle}. Budget: ${formData.budget}. ${formData.specialRequests}`,
+        airportPickup: formData.airportPickup,
+        personalDetails: {
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          passportNumber: '',
+          emergencyContact: ''
+        },
+        bookingCode: newBookingCode,
+        nationality: 'malawian',
+        paymentMethod: null
+      };
+
+      const response = await fetch(`${API_URL}/api/custom-bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bookingData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || 'Unable to submit your journey request.');
+      }
+
+      setSuccessMessage('Your journey request was submitted successfully.');
+      sessionStorage.setItem('lastBooking', JSON.stringify(data));
+      window.location.href = `/booking-confirmation?bookingCode=${newBookingCode}`;
+    } catch (err) {
+      console.error('Journey request error:', err);
+      setFormError(err.message || 'Unable to submit your journey request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -68,8 +163,142 @@ const CustomBookingsPage = () => {
   return (
     <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', padding: '32px 16px' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <h1 style={{ color: '#2c3e50', marginBottom: '8px' }}>My Activity Bookings</h1>
-        <p style={{ color: '#666', marginBottom: '32px' }}>View and manage your booked activities</p>
+        <h1 style={{ color: '#2c3e50', marginBottom: '8px' }}>Plan Your Journey</h1>
+        <p style={{ color: '#666', marginBottom: '24px' }}>Share your travel preferences and we will create a personalized itinerary for you.</p>
+
+        <div style={{ marginBottom: '32px', padding: '28px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 1px 12px rgba(0,0,0,0.08)' }}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                Full Name*
+                <input
+                  type="text"
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
+                  placeholder="Your full name"
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                Email Address*
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
+                  placeholder="you@example.com"
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                Phone Number
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
+                  placeholder="Optional contact number"
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                Preferred Travel Date*
+                <input
+                  type="date"
+                  value={formData.preferredDate}
+                  onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
+                  style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                Destination / Region*
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
+                  placeholder="e.g. Lake Malawi, Mulanje, Northern Region"
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                Group Size
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.numberOfPeople}
+                  onChange={(e) => setFormData({ ...formData, numberOfPeople: parseInt(e.target.value) || 1 })}
+                  style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
+                />
+              </label>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginTop: '16px' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                Travel Style
+                <select
+                  value={formData.travelStyle}
+                  onChange={(e) => setFormData({ ...formData, travelStyle: e.target.value })}
+                  style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
+                >
+                  <option value="Adventure">Adventure</option>
+                  <option value="Relaxation">Relaxation</option>
+                  <option value="Safari">Safari</option>
+                  <option value="Cultural">Cultural</option>
+                  <option value="Family">Family</option>
+                </select>
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                Budget (optional)
+                <input
+                  type="text"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
+                  placeholder="USD 500 - 1500"
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                Airport Pickup
+                <input
+                  type="checkbox"
+                  checked={formData.airportPickup}
+                  onChange={(e) => setFormData({ ...formData, airportPickup: e.target.checked })}
+                  style={{ transform: 'scale(1.2)' }}
+                />
+              </label>
+            </div>
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+              Tell Us More
+              <textarea
+                value={formData.specialRequests}
+                onChange={(e) => setFormData({ ...formData, specialRequests: e.target.value })}
+                style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd', minHeight: '120px' }}
+                placeholder="Any special requests or notes for your itinerary"
+              />
+            </label>
+
+            {formError && <p style={{ color: '#e74c3c', marginTop: '12px' }}>{formError}</p>}
+            {successMessage && <p style={{ color: '#2ecc71', marginTop: '12px' }}>{successMessage}</p>}
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '24px' }}>
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{ padding: '14px 28px', backgroundColor: '#e67e22', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' }}
+              >
+                {submitting ? 'Submitting...' : 'Request Custom Journey'}
+              </button>
+              {!user?.id && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/login?redirect=custom-booking')}
+                  style={{ padding: '14px 28px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' }}
+                >
+                  Login to Submit
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
 
         {bookings.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px', backgroundColor: 'white', borderRadius: '12px' }}>
@@ -97,13 +326,13 @@ const CustomBookingsPage = () => {
                 <div style={{ borderTop: '1px solid #eee', paddingTop: '16px' }}>
                   {booking.selectedActivities.map((item, idx) => (
                     <div key={idx} style={{ marginBottom: '16px', borderBottom: idx !== booking.selectedActivities.length - 1 ? '1px solid #f0f0f0' : 'none', paddingBottom: '16px' }}>
-                      <h4 style={{ margin: '0 0 8px 0', color: '#e67e22' }}>{item.activity.name}</h4>
+                      <h4 style={{ margin: '0 0 8px 0', color: '#e67e22' }}>{item.activity?.name || 'Custom Journey Item'}</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px', fontSize: '14px' }}>
-                        <div>📍 Location: {item.activity.location}</div>
-                        <div>📅 Date: {new Date(item.selectedDate).toLocaleDateString()}</div>
+                        <div>📍 Location: {item.activity?.location || 'Not specified'}</div>
+                        <div>📅 Date: {item.selectedDate ? new Date(item.selectedDate).toLocaleDateString() : 'Not set'}</div>
                         <div>⏱️ Days: {item.numberOfDays}</div>
                         <div>👥 People: {item.numberOfPeople}</div>
-                        <div>💰 Price: MK {item.totalPrice.toLocaleString()}</div>
+                        <div>💰 Price: MK {item.totalPrice?.toLocaleString() || 'Pending'}</div>
                       </div>
                     </div>
                   ))}

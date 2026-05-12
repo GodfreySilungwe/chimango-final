@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ReviewModal from '../components/ReviewModal';
 import { API_URL } from '../config';
+import './BookingsPage.css';
 
 const BookingsPage = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [tourBookings, setTourBookings] = useState([]);
   const [activityBookings, setActivityBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,10 +15,13 @@ const BookingsPage = () => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [cancelling, setCancelling] = useState(null);
 
   useEffect(() => {
     if (user && user.id) {
       fetchAllBookings();
+    } else if (!user) {
+      setLoading(false);
     }
   }, [user]);
 
@@ -23,14 +29,20 @@ const BookingsPage = () => {
     try {
       setLoading(true);
       
-      const tourRes = await fetch(`${API_URL}/api/bookings/user/${user.id}`);
-      const tourData = await tourRes.json();
+      const [tourRes, activityRes] = await Promise.all([
+        fetch(`${API_URL}/api/bookings/user/${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/api/custom-bookings/user/${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+      
+      const tourData = tourRes.ok ? await tourRes.json() : [];
+      const activityData = activityRes.ok ? await activityRes.json() : [];
+      
       setTourBookings(tourData);
-      
-      const activityRes = await fetch(`${API_URL}/api/custom-bookings/user/${user.id}`);
-      const activityData = await activityRes.json();
       setActivityBookings(activityData);
-      
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
@@ -39,44 +51,87 @@ const BookingsPage = () => {
   };
 
   const cancelTourBooking = async (bookingId) => {
-    if (!confirm('Are you sure you want to cancel this tour booking?')) return;
+    if (!window.confirm('Are you sure you want to cancel this tour booking?')) return;
     
+    setCancelling(bookingId);
     try {
-      await fetch(`${API_URL}/api/bookings/${bookingId}/cancel`, {
+      const response = await fetch(`${API_URL}/api/bookings/${bookingId}/cancel`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       });
-      alert('Booking cancelled successfully');
-      fetchAllBookings();
+      
+      if (response.ok) {
+        alert('✅ Booking cancelled successfully');
+        fetchAllBookings();
+      } else {
+        throw new Error('Cancellation failed');
+      }
     } catch (error) {
       console.error('Cancel error:', error);
-      alert('Failed to cancel booking');
+      alert('❌ Failed to cancel booking');
+    } finally {
+      setCancelling(null);
     }
   };
 
   const cancelActivityBooking = async (bookingId) => {
-    if (!confirm('Are you sure you want to cancel this activity booking?')) return;
+    if (!window.confirm('Are you sure you want to cancel this activity booking?')) return;
     
+    setCancelling(bookingId);
     try {
-      await fetch(`${API_URL}/api/custom-bookings/${bookingId}/cancel`, {
+      const response = await fetch(`${API_URL}/api/custom-bookings/${bookingId}/cancel`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       });
-      alert('Booking cancelled successfully');
-      fetchAllBookings();
+      
+      if (response.ok) {
+        alert('✅ Booking cancelled successfully');
+        fetchAllBookings();
+      } else {
+        throw new Error('Cancellation failed');
+      }
     } catch (error) {
       console.error('Cancel error:', error);
-      alert('Failed to cancel booking');
+      alert('❌ Failed to cancel booking');
+    } finally {
+      setCancelling(null);
     }
   };
 
+  const getStatusBadge = (status) => {
+    const config = {
+      confirmed: { class: 'status-confirmed', icon: '✓', text: 'Confirmed' },
+      pending: { class: 'status-pending', icon: '⏳', text: 'Pending' },
+      cancelled: { class: 'status-cancelled', icon: '✗', text: 'Cancelled' },
+      completed: { class: 'status-completed', icon: '★', text: 'Completed' }
+    };
+    const { class: badgeClass, icon, text } = config[status] || config.pending;
+    return <span className={`status-badge ${badgeClass}`}><span className="status-icon">{icon}</span>{text}</span>;
+  };
+
+  if (!user) {
+    return (
+      <div className="bookings-login-required">
+        <div className="login-icon">🔒</div>
+        <h2>Please Log In</h2>
+        <p>Sign in to view your bookings</p>
+        <button className="btn-primary" onClick={() => navigate('/login')}>
+          Sign In →
+        </button>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
+      <div className="bookings-loading">
+        <div className="loading-spinner"></div>
         <h2>Loading your bookings...</h2>
       </div>
     );
@@ -85,205 +140,222 @@ const BookingsPage = () => {
   const totalBookings = tourBookings.length + activityBookings.length;
 
   return (
-    <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', padding: '32px 16px' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <h1 style={{ color: '#2c3e50', marginBottom: '8px' }}>My Bookings</h1>
-        <p style={{ color: '#666', marginBottom: '24px' }}>You have {totalBookings} total booking(s)</p>
+    <div className="bookings-page">
+      <div className="bookings-container">
+        {/* Header */}
+        <div className="bookings-header">
+          <div className="header-icon">📅</div>
+          <h1 className="bookings-title">My Bookings</h1>
+          <p className="bookings-subtitle">Manage your tours and activity reservations</p>
+          <div className="bookings-stats">
+            <span className="stat-badge">{totalBookings} Total {totalBookings === 1 ? 'Booking' : 'Bookings'}</span>
+          </div>
+        </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid #ddd', paddingBottom: '12px' }}>
+        {/* Tab Navigation */}
+        <div className="bookings-tabs">
           <button
+            className={`tab-btn ${activeTab === 'activities' ? 'active' : ''}`}
             onClick={() => setActiveTab('activities')}
-            style={{
-              padding: '10px 24px',
-              backgroundColor: activeTab === 'activities' ? '#3498db' : 'white',
-              color: activeTab === 'activities' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
           >
-            Activities ({activityBookings.length})
+            <span className="tab-icon">🏔️</span>
+            Activities
+            <span className="tab-count">{activityBookings.length}</span>
           </button>
           <button
+            className={`tab-btn ${activeTab === 'tours' ? 'active' : ''}`}
             onClick={() => setActiveTab('tours')}
-            style={{
-              padding: '10px 24px',
-              backgroundColor: activeTab === 'tours' ? '#3498db' : 'white',
-              color: activeTab === 'tours' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
           >
-            Tours ({tourBookings.length})
+            <span className="tab-icon">🏕️</span>
+            Tours
+            <span className="tab-count">{tourBookings.length}</span>
           </button>
         </div>
 
+        {/* Activities Tab */}
         {activeTab === 'activities' && (
           <>
             {activityBookings.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px', backgroundColor: 'white', borderRadius: '12px' }}>
-                <p style={{ fontSize: '18px', color: '#666' }}>You have no activity bookings yet.</p>
-                <a href="/activities" style={{ color: '#3498db', textDecoration: 'none' }}>Browse Activities →</a>
+              <div className="empty-state">
+                <div className="empty-icon">🏔️</div>
+                <h3>No Activity Bookings Yet</h3>
+                <p>Start your adventure by booking an unforgettable experience</p>
+                <button className="btn-primary" onClick={() => navigate('/activities')}>
+                  Browse Activities →
+                </button>
               </div>
             ) : (
-              activityBookings.map((booking) => (
-                <div key={booking._id} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', marginBottom: '16px' }}>
-                    <h3 style={{ margin: 0, color: '#2c3e50' }}>Activity Booking #{booking._id.slice(-8)}</h3>
-                    <span style={{
-                      padding: '4px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      backgroundColor: booking.status === 'confirmed' ? '#d4edda' : booking.status === 'completed' ? '#cce5ff' : '#f8d7da',
-                      color: booking.status === 'confirmed' ? '#155724' : booking.status === 'completed' ? '#004085' : '#721c24'
-                    }}>
-                      {booking.status.toUpperCase()}
-                    </span>
-                  </div>
+              <div className="bookings-list">
+                {activityBookings.map((booking) => (
+                  <div className="booking-card" key={booking._id || booking.id}>
+                    <div className="booking-header">
+                      <div className="booking-info">
+                        <div className="booking-icon">🎒</div>
+                        <div>
+                          <h3 className="booking-title">Activity Booking</h3>
+                          <p className="booking-code">Booking ID: {booking.bookingCode || booking._id?.slice(-8)}</p>
+                        </div>
+                      </div>
+                      {getStatusBadge(booking.status)}
+                    </div>
 
-                  {booking.selectedActivities.map((item, idx) => (
-                    <div key={idx} style={{ marginBottom: '16px', borderBottom: idx !== booking.selectedActivities.length - 1 ? '1px solid #f0f0f0' : 'none', paddingBottom: '16px' }}>
-                      <h4 style={{ margin: '0 0 8px 0', color: '#e67e22' }}>{item.activity?.name || 'Activity'}</h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px', fontSize: '14px' }}>
-                        <div>📍 Location: {item.activity?.location || 'N/A'}</div>
-                        <div>📅 Date: {new Date(item.selectedDate).toLocaleDateString()}</div>
-                        <div>⏱️ Days: {item.numberOfDays}</div>
-                        <div>👥 People: {item.numberOfPeople}</div>
-                        <div>💰 Price: USD {item.totalPrice?.toLocaleString() || 0}</div>
+                    <div className="booking-activities">
+                      {booking.selectedActivities?.map((item, idx) => (
+                        <div className="activity-detail" key={idx}>
+                          <h4 className="activity-name">{item.activity?.name || 'Activity'}</h4>
+                          <div className="activity-info-grid">
+                            <div className="info-item">
+                              <span className="info-icon">📍</span>
+                              <span>{item.activity?.location || 'Location TBA'}</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-icon">📅</span>
+                              <span>{new Date(item.selectedDate).toLocaleDateString()}</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-icon">⏱️</span>
+                              <span>{item.numberOfDays} {item.numberOfDays === 1 ? 'Day' : 'Days'}</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-icon">👥</span>
+                              <span>{item.numberOfPeople} {item.numberOfPeople === 1 ? 'Person' : 'People'}</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-icon">💰</span>
+                              <span className="price-highlight">USD {item.totalPrice?.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="booking-footer">
+                      <div className="booking-total">
+                        <span className="total-label">Total Amount</span>
+                        <span className="total-amount">USD {booking.totalPrice?.toLocaleString()}</span>
+                      </div>
+                      <div className="booking-actions">
+                        {booking.status === 'confirmed' && (
+                          <button 
+                            className="btn-cancel"
+                            onClick={() => cancelActivityBooking(booking._id || booking.id)}
+                            disabled={cancelling === (booking._id || booking.id)}
+                          >
+                            {cancelling === (booking._id || booking.id) ? 'Cancelling...' : 'Cancel Booking'}
+                          </button>
+                        )}
+                        {booking.status === 'completed' && (
+                          <button 
+                            className="btn-review"
+                            onClick={() => {
+                              setSelectedActivity(booking.selectedActivities?.[0]?.activity);
+                              setSelectedBooking(booking);
+                              setShowReviewModal(true);
+                            }}
+                          >
+                            Write a Review
+                          </button>
+                        )}
                       </div>
                     </div>
-                  ))}
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '16px', marginTop: '8px', flexWrap: 'wrap', gap: '10px' }}>
-                    <div>
-                      <strong>Total Amount:</strong>
-                      <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#e67e22', marginLeft: '8px' }}>
-                        USD {booking.totalPrice?.toLocaleString() || 0}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      {booking.status === 'confirmed' && (
-                        <button
-                          onClick={() => cancelActivityBooking(booking._id)}
-                          style={{
-                            backgroundColor: '#e74c3c',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 20px',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Cancel Booking
-                        </button>
-                      )}
-                      {booking.status === 'completed' && (
-                        <button
-                          onClick={() => {
-                            setSelectedActivity(booking.selectedActivities[0]?.activity);
-                            setSelectedBooking(booking);
-                            setShowReviewModal(true);
-                          }}
-                          style={{
-                            backgroundColor: '#f39c12',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 20px',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Write a Review
-                        </button>
-                      )}
+                    <div className="booking-meta">
+                      Booked on: {new Date(booking.createdAt).toLocaleDateString()} at {new Date(booking.createdAt).toLocaleTimeString()}
                     </div>
                   </div>
-
-                  <div style={{ marginTop: '12px', fontSize: '12px', color: '#999' }}>
-                    Booked on: {new Date(booking.createdAt).toLocaleString()}
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </>
         )}
 
+        {/* Tours Tab */}
         {activeTab === 'tours' && (
           <>
             {tourBookings.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px', backgroundColor: 'white', borderRadius: '12px' }}>
-                <p style={{ fontSize: '18px', color: '#666' }}>You have no tour bookings yet.</p>
-                <a href="/" style={{ color: '#3498db', textDecoration: 'none' }}>Browse Tours →</a>
+              <div className="empty-state">
+                <div className="empty-icon">🏕️</div>
+                <h3>No Tour Bookings Yet</h3>
+                <p>Embark on a journey with our curated tour packages</p>
+                <button className="btn-primary" onClick={() => navigate('/')}>
+                  Browse Tours →
+                </button>
               </div>
             ) : (
-              tourBookings.map((booking) => (
-                <div key={booking._id} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', marginBottom: '16px' }}>
-                    <h3 style={{ margin: 0, color: '#2c3e50' }}>{booking.tour?.name || 'Tour'}</h3>
-                    <span style={{
-                      padding: '4px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      backgroundColor: booking.status === 'confirmed' ? '#d4edda' : '#f8d7da',
-                      color: booking.status === 'confirmed' ? '#155724' : '#721c24'
-                    }}>
-                      {booking.status.toUpperCase()}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px', fontSize: '14px', marginBottom: '16px' }}>
-                    <div>📍 Destination: {booking.tour?.destination || 'N/A'}</div>
-                    <div>📅 Travel Date: {new Date(booking.travelDate).toLocaleDateString()}</div>
-                    <div>👥 Travelers: {booking.numTravelers}</div>
-                    <div>💰 Price: USD {booking.totalPrice}</div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '16px' }}>
-                    <div>
-                      <strong>Total Paid:</strong>
-                      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#e67e22', marginLeft: '8px' }}>
-                        USD {booking.totalPrice}
-                      </span>
+              <div className="bookings-list">
+                {tourBookings.map((booking) => (
+                  <div className="booking-card" key={booking._id || booking.id}>
+                    <div className="booking-header">
+                      <div className="booking-info">
+                        <div className="booking-icon">🏕️</div>
+                        <div>
+                          <h3 className="booking-title">{booking.tour?.name || 'Tour Booking'}</h3>
+                          <p className="booking-code">Booking ID: {booking._id?.slice(-8)}</p>
+                        </div>
+                      </div>
+                      {getStatusBadge(booking.status)}
                     </div>
-                    {booking.status === 'confirmed' && (
-                      <button
-                        onClick={() => cancelTourBooking(booking._id)}
-                        style={{
-                          backgroundColor: '#e74c3c',
-                          color: 'white',
-                          border: 'none',
-                          padding: '8px 20px',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Cancel Booking
-                      </button>
-                    )}
-                  </div>
 
-                  <div style={{ marginTop: '12px', fontSize: '12px', color: '#999' }}>
-                    Booked on: {new Date(booking.createdAt).toLocaleString()}
+                    <div className="tour-details">
+                      <div className="tour-info-grid">
+                        <div className="info-item">
+                          <span className="info-icon">📍</span>
+                          <span>{booking.tour?.destination || 'Destination TBA'}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="info-icon">📅</span>
+                          <span>{new Date(booking.travelDate).toLocaleDateString()}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="info-icon">⏱️</span>
+                          <span>{booking.tour?.durationDays || 'N/A'} Days</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="info-icon">👥</span>
+                          <span>{booking.numTravelers} Travelers</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="info-icon">💰</span>
+                          <span className="price-highlight">USD {booking.totalPrice?.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="booking-footer">
+                      <div className="booking-total">
+                        <span className="total-label">Total Paid</span>
+                        <span className="total-amount">USD {booking.totalPrice}</span>
+                      </div>
+                      {booking.status === 'confirmed' && (
+                        <button 
+                          className="btn-cancel"
+                          onClick={() => cancelTourBooking(booking._id || booking.id)}
+                          disabled={cancelling === (booking._id || booking.id)}
+                        >
+                          {cancelling === (booking._id || booking.id) ? 'Cancelling...' : 'Cancel Booking'}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="booking-meta">
+                      Booked on: {new Date(booking.createdAt).toLocaleDateString()}
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </>
         )}
       </div>
 
+      {/* Review Modal */}
       {showReviewModal && selectedActivity && (
         <ReviewModal
           activity={selectedActivity}
           booking={selectedBooking}
           onClose={() => setShowReviewModal(false)}
           onReviewSubmitted={() => {
-            alert('Thank you for your review!');
+            alert('Thank you for your review! 🌟');
             fetchAllBookings();
           }}
         />

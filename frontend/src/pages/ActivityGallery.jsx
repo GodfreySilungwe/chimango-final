@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ActivityCard from '../components/ActivityCard';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 import { API_URL } from '../config';
+import './ActivityGallery.css';
 
 const ActivityGallery = () => {
+  const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
   const [filteredActivities, setFilteredActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,11 +16,18 @@ const ActivityGallery = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [user, setUser] = useState(null);
+  const [showFilters, setShowFilters] = useState(true);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        console.error('Failed to parse user:', e);
+      }
     }
     fetchActivities();
   }, []);
@@ -36,7 +46,7 @@ const ActivityGallery = () => {
       setFilteredActivities(data);
       setLoading(false);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching activities:', error);
       setLoading(false);
     }
   };
@@ -48,7 +58,7 @@ const ActivityGallery = () => {
       filtered = filtered.filter(activity => 
         activity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         activity.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        activity.description.toLowerCase().includes(searchTerm.toLowerCase())
+        activity.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -67,6 +77,13 @@ const ActivityGallery = () => {
     setFilteredActivities(filtered);
   };
 
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setSelectedRegion('all');
+    setSelectedDifficulty('all');
+  };
+
   const openActivityModal = (activity) => {
     setSelectedActivity(activity);
   };
@@ -75,94 +92,249 @@ const ActivityGallery = () => {
     setSelectedActivity(null);
   };
 
-  const categories = ['all', 'hiking', 'safari', 'kayaking', 'cultural', 'beach'];
-  const regions = ['all', 'Northern Region', 'Southern Region', 'Central Region', 'Eastern Region'];
-  const difficulties = ['all', 'easy', 'moderate', 'challenging'];
+  const categories = [
+    { value: 'all', label: 'All', icon: '🎯' },
+    { value: 'hiking', label: 'Hiking', icon: '🥾' },
+    { value: 'safari', label: 'Safari', icon: '🦁' },
+    { value: 'kayaking', label: 'Kayaking', icon: '🛶' },
+    { value: 'cultural', label: 'Cultural', icon: '🏺' },
+    { value: 'beach', label: 'Beach', icon: '🏖️' }
+  ];
+  
+  const regions = [
+    { value: 'all', label: 'All Regions', icon: '🌍' },
+    { value: 'Northern Region', label: 'Northern', icon: '⬆️' },
+    { value: 'Southern Region', label: 'Southern', icon: '⬇️' },
+    { value: 'Central Region', label: 'Central', icon: '🟤' },
+    { value: 'Eastern Region', label: 'Eastern', icon: '➡️' }
+  ];
+  
+  const difficulties = [
+    { value: 'all', label: 'All', icon: '🎯' },
+    { value: 'easy', label: 'Easy', icon: '🌱' },
+    { value: 'moderate', label: 'Moderate', icon: '⚡' },
+    { value: 'challenging', label: 'Challenging', icon: '🏔️' }
+  ];
+
+  const activeFilterCount = [
+    selectedCategory !== 'all',
+    selectedRegion !== 'all',
+    selectedDifficulty !== 'all',
+    searchTerm !== ''
+  ].filter(Boolean).length;
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '40px' }}>⏳</div>
-          <h2>Loading Activities...</h2>
-        </div>
+      <div className="gallery-loading">
+        <div className="loading-spinner"></div>
+        <h2>Discovering Malawi's Hidden Gems...</h2>
       </div>
     );
   }
 
   return (
-    <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', padding: '32px 16px' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1 style={{ color: '#2c3e50', marginBottom: '8px' }}>Discover Amazing Activities in Malawi</h1>
-          <p style={{ color: '#666' }}>Click on any image to see more photos. Click Book Now to reserve your spot.</p>
-          {user && <p style={{ color: 'green', fontSize: '14px' }}>✓ Logged in as: {user.fullName}</p>}
+    <div className="gallery-page">
+      {/* Hero Banner */}
+      <div className="gallery-hero">
+        <div className="hero-overlay"></div>
+        <div className="hero-content">
+          <h1 className="hero-title">Discover Amazing <span className="highlight">Activities</span></h1>
+          <p className="hero-subtitle">Explore the best experiences Malawi has to offer</p>
         </div>
+      </div>
 
-        {/* Search Bar */}
-        <div style={{ marginBottom: '24px', padding: '20px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <input
-            type="text"
-            placeholder="Search activities by name, location, or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '12px 16px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '8px', outline: 'none', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        {/* Filters */}
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <div style={{ marginBottom: '16px' }}>
-            <strong>Category:</strong>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
-              {categories.map(cat => (
-                <button key={cat} onClick={() => setSelectedCategory(cat)} style={{ padding: '6px 16px', backgroundColor: selectedCategory === cat ? '#3498db' : '#e9ecef', color: selectedCategory === cat ? 'white' : '#333', border: 'none', borderRadius: '20px', cursor: 'pointer' }}>
-                  {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </button>
-              ))}
-            </div>
+      <div className="gallery-container">
+        {/* User Greeting */}
+        {user && (
+          <div className="user-greeting">
+            <span className="greeting-icon">👋</span>
+            <span>Welcome back, <strong>{user.fullName}</strong>!</span>
           </div>
+        )}
 
-          <div style={{ marginBottom: '16px' }}>
-            <strong>Region:</strong>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
-              {regions.map(reg => (
-                <button key={reg} onClick={() => setSelectedRegion(reg)} style={{ padding: '6px 16px', backgroundColor: selectedRegion === reg ? '#3498db' : '#e9ecef', color: selectedRegion === reg ? 'white' : '#333', border: 'none', borderRadius: '20px', cursor: 'pointer' }}>
-                  {reg === 'all' ? 'All Regions' : reg}
-                </button>
-              ))}
-            </div>
+        {/* Stats Bar */}
+        <div className="stats-bar">
+          <span className="stat-item">
+            <span className="stat-number">{filteredActivities.length}</span>
+            <span className="stat-label">Activities Found</span>
+          </span>
+          <span className="stat-item">
+            <span className="stat-number">{activities.length}</span>
+            <span className="stat-label">Total Activities</span>
+          </span>
+        </div>
+
+        {/* Search and View Controls */}
+        <div className="search-controls">
+          <div className="search-wrapper">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search activities by name, location, or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            {searchTerm && (
+              <button className="clear-search" onClick={() => setSearchTerm('')}>✕</button>
+            )}
           </div>
-
-          <div>
-            <strong>Difficulty:</strong>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
-              {difficulties.map(diff => (
-                <button key={diff} onClick={() => setSelectedDifficulty(diff)} style={{ padding: '6px 16px', backgroundColor: selectedDifficulty === diff ? '#3498db' : '#e9ecef', color: selectedDifficulty === diff ? 'white' : '#333', border: 'none', borderRadius: '20px', cursor: 'pointer' }}>
-                  {diff === 'all' ? 'All' : diff.charAt(0).toUpperCase() + diff.slice(1)}
-                </button>
-              ))}
-            </div>
+          <div className="view-controls">
+            <button 
+              className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+            >
+              ⊞ Grid
+            </button>
+            <button 
+              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+            >
+              ☰ List
+            </button>
+            <button 
+              className={`filter-toggle ${showFilters ? 'active' : ''}`}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {showFilters ? 'Hide Filters ↑' : 'Show Filters ↓'}
+              {activeFilterCount > 0 && <span className="filter-badge">{activeFilterCount}</span>}
+            </button>
           </div>
         </div>
 
-        <p style={{ marginBottom: '16px', color: '#666' }}>Found {filteredActivities.length} activity(s)</p>
+        {/* Filters Section */}
+        {showFilters && (
+          <div className="filters-section">
+            <div className="filter-group">
+              <label className="filter-label">
+                <span className="filter-icon">🏷️</span> Category
+              </label>
+              <div className="filter-options">
+                {categories.map(cat => (
+                  <button
+                    key={cat.value}
+                    className={`filter-btn ${selectedCategory === cat.value ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(cat.value)}
+                  >
+                    <span className="btn-icon">{cat.icon}</span>
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Activities Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
-          {filteredActivities.map((activity) => (
-            <ActivityCard key={activity._id} activity={activity} onBookClick={openActivityModal} />
-          ))}
+            <div className="filter-group">
+              <label className="filter-label">
+                <span className="filter-icon">📍</span> Region
+              </label>
+              <div className="filter-options">
+                {regions.map(reg => (
+                  <button
+                    key={reg.value}
+                    className={`filter-btn ${selectedRegion === reg.value ? 'active' : ''}`}
+                    onClick={() => setSelectedRegion(reg.value)}
+                  >
+                    <span className="btn-icon">{reg.icon}</span>
+                    {reg.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <label className="filter-label">
+                <span className="filter-icon">🏔️</span> Difficulty
+              </label>
+              <div className="filter-options">
+                {difficulties.map(diff => (
+                  <button
+                    key={diff.value}
+                    className={`filter-btn difficulty-${diff.value} ${selectedDifficulty === diff.value ? 'active' : ''}`}
+                    onClick={() => setSelectedDifficulty(diff.value)}
+                  >
+                    <span className="btn-icon">{diff.icon}</span>
+                    {diff.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {activeFilterCount > 0 && (
+              <button className="reset-filters" onClick={resetFilters}>
+                Reset All Filters ({activeFilterCount})
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Results Count */}
+        <div className="results-count">
+          <span>Showing {filteredActivities.length} of {activities.length} activities</span>
+          {filteredActivities.length === 0 && (
+            <button className="reset-link" onClick={resetFilters}>Clear Filters</button>
+          )}
         </div>
 
-        {filteredActivities.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px', backgroundColor: 'white', borderRadius: '12px', marginTop: '24px' }}>
-            No activities found. Try different search or filters.
+        {/* Activities Grid/List */}
+        {filteredActivities.length === 0 ? (
+          <div className="no-results">
+            <div className="no-results-icon">🔍</div>
+            <h3>No activities found</h3>
+            <p>Try adjusting your search or filters to find what you're looking for.</p>
+            <button className="btn-browse" onClick={resetFilters}>
+              Browse All Activities →
+            </button>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <div className="activities-grid">
+            {filteredActivities.map((activity, index) => (
+              <ActivityCard 
+                key={activity._id || activity.id} 
+                activity={activity} 
+                onBookClick={openActivityModal}
+                user={user}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="activities-list">
+            {filteredActivities.map((activity) => (
+              <div key={activity._id || activity.id} className="list-item">
+                <div className="list-item-image">
+                  <img 
+                    src={activity.mainImage || activity.images?.[0] || 'https://via.placeholder.com/100x100?text=No+Image'} 
+                    alt={activity.name}
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/100x100?text=Chimango'; }}
+                  />
+                </div>
+                <div className="list-item-content">
+                  <div className="list-item-header">
+                    <h3>{activity.name}</h3>
+                    <span className={`difficulty-badge ${activity.difficulty}`}>
+                      {activity.difficulty}
+                    </span>
+                  </div>
+                  <p className="list-item-location">📍 {activity.location}</p>
+                  <p className="list-item-description">{activity.description?.substring(0, 120)}...</p>
+                  <div className="list-item-footer">
+                    <div className="list-item-price">
+                      ${activity.pricePerDay || activity.price} <span>/person</span>
+                    </div>
+                    <button 
+                      className="list-item-btn"
+                      onClick={() => openActivityModal(activity)}
+                    >
+                      View Details →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Activity Detail Modal - Same as Home page */}
+      {/* Activity Detail Modal */}
       {selectedActivity && (
         <ActivityDetailModal
           activity={selectedActivity}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import './LoginPage.css';
 
 const LoginPage = () => {
   // Login state
@@ -8,6 +9,7 @@ const LoginPage = () => {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   
   // Register state
   const [registerFullName, setRegisterFullName] = useState('');
@@ -18,6 +20,7 @@ const LoginPage = () => {
   const [registerError, setRegisterError] = useState('');
   const [registerLoading, setRegisterLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
   
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -31,6 +34,12 @@ const LoginPage = () => {
     try {
       await login(loginEmail, loginPassword);
       
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', loginEmail);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+      
       const pendingBooking = sessionStorage.getItem('pendingBooking');
       if (pendingBooking) {
         sessionStorage.removeItem('pendingBooking');
@@ -39,10 +48,9 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (err) {
-      // Fix: Handle error correctly - err is the Error object, not an Axios error
-      const errorMessage = err.message || 'Login failed';
+      const errorMessage = err.message || 'Login failed. Please check your credentials.';
       setLoginError(errorMessage);
-      console.error('Login error in component:', errorMessage);
+      console.error('Login error:', errorMessage);
     } finally {
       setLoginLoading(false);
     }
@@ -63,6 +71,16 @@ const LoginPage = () => {
       return;
     }
     
+    if (registerFullName.length < 2) {
+      setRegisterError('Please enter your full name');
+      return;
+    }
+    
+    if (!registerEmail.includes('@')) {
+      setRegisterError('Please enter a valid email address');
+      return;
+    }
+    
     setRegisterLoading(true);
     
     try {
@@ -76,10 +94,9 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (err) {
-      // Fix: Handle error correctly - err is the Error object, not an Axios error
-      const errorMessage = err.message || 'Registration failed';
+      const errorMessage = err.message || 'Registration failed. Please try again.';
       setRegisterError(errorMessage);
-      console.error('Registration error in component:', errorMessage);
+      console.error('Registration error:', errorMessage);
     } finally {
       setRegisterLoading(false);
     }
@@ -89,320 +106,272 @@ const LoginPage = () => {
     setShowPassword(!showPassword);
   };
 
+  // Load remembered email on mount
+  useState(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+      setLoginEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+  }, []);
+
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      backgroundColor: '#f0f2f5', 
-      padding: '40px 20px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
-    }}>
-      <div style={{ 
-        maxWidth: '1100px', 
-        width: '100%', 
-        display: 'flex', 
-        flexWrap: 'wrap',
-        gap: '30px',
-        justifyContent: 'center'
-      }}>
-        
-        {/* Welcome Section - LEFT */}
-        <div style={{ 
-          flex: '1', 
-          minWidth: '280px',
-          backgroundColor: '#e67e22', 
-          borderRadius: '16px', 
-          padding: '40px 30px',
-          color: 'white',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '50px', marginBottom: '20px' }}>🌍</div>
-          <h2 style={{ marginBottom: '15px' }}>Chimango Tour</h2>
-          <p style={{ lineHeight: '1.6', marginBottom: '0' }}>
-            Discover the beauty of Malawi with our amazing tours and activities.
-          </p>
-          <p style={{ marginTop: '20px', fontSize: '14px', opacity: 0.9 }}>
-            Join us for an unforgettable adventure!
-          </p>
+    <div className="login-page">
+      <div className="login-container">
+        {/* Left Side - Brand Section */}
+        <div className="login-brand">
+          <div className="brand-content">
+            <div className="brand-icon">🌍✨</div>
+            <h1 className="brand-title">Chimango Tour</h1>
+            <p className="brand-tagline">Discover the Warm Heart of Africa</p>
+            <div className="brand-features">
+              <div className="brand-feature">
+                <span className="feature-icon">✓</span>
+                <span>Curated Experiences</span>
+              </div>
+              <div className="brand-feature">
+                <span className="feature-icon">✓</span>
+                <span>Expert Local Guides</span>
+              </div>
+              <div className="brand-feature">
+                <span className="feature-icon">✓</span>
+                <span>Sustainable Tourism</span>
+              </div>
+              <div className="brand-feature">
+                <span className="feature-icon">✓</span>
+                <span>24/7 Customer Support</span>
+              </div>
+            </div>
+            <div className="brand-testimonial">
+              <div className="testimonial-quote">"</div>
+              <p>"An unforgettable experience! The team went above and beyond to make our trip special."</p>
+              <div className="testimonial-author">— Sarah M. ⭐⭐⭐⭐⭐</div>
+            </div>
+          </div>
         </div>
 
-        {/* Login & Register Section - RIGHT */}
-        <div style={{ 
-          flex: '1.5', 
-          minWidth: '400px',
-          backgroundColor: 'white', 
-          borderRadius: '16px', 
-          padding: '30px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-        }}>
-          
-          <div style={{ textAlign: 'center', marginBottom: '25px' }}>
-            <h2 style={{ color: '#2c3e50', marginBottom: '8px' }}>Welcome Back!</h2>
-            <p style={{ color: '#666' }}>
-              Don't have an account? <strong style={{ color: '#e67e22' }}>Register below</strong>
-            </p>
+        {/* Right Side - Auth Forms */}
+        <div className="login-form-container">
+          {/* Tab Switcher */}
+          <div className="auth-tabs">
+            <button 
+              className={`auth-tab ${activeTab === 'login' ? 'active' : ''}`}
+              onClick={() => setActiveTab('login')}
+            >
+              Sign In
+            </button>
+            <button 
+              className={`auth-tab ${activeTab === 'register' ? 'active' : ''}`}
+              onClick={() => setActiveTab('register')}
+            >
+              Create Account
+            </button>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px' }}>
-            
-            {/* LOGIN FORM */}
-            <div style={{ flex: 1, minWidth: '250px' }}>
-              <div style={{ 
-                backgroundColor: '#f8f9fa', 
-                padding: '20px', 
-                borderRadius: '12px',
-                height: '100%'
-              }}>
-                <h3 style={{ color: '#2c3e50', marginBottom: '20px', textAlign: 'center' }}>Login</h3>
-                
-                {loginError && (
-                  <div style={{ 
-                    color: 'red', 
-                    marginBottom: '15px', 
-                    padding: '8px', 
-                    backgroundColor: '#fee', 
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    textAlign: 'center'
-                  }}>
-                    {loginError}
-                  </div>
-                )}
-                
-                <form onSubmit={handleLogin}>
-                  <div style={{ marginBottom: '15px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Email</label>
+          {/* Login Form */}
+          {activeTab === 'login' && (
+            <div className="auth-form">
+              <h2 className="form-title">Welcome Back!</h2>
+              <p className="form-subtitle">Sign in to continue your journey</p>
+              
+              {loginError && (
+                <div className="alert alert-error">
+                  <span className="alert-icon">⚠️</span>
+                  <span>{loginError}</span>
+                </div>
+              )}
+              
+              <form onSubmit={handleLogin}>
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <div className="input-wrapper">
+                    <span className="input-icon">📧</span>
                     <input
                       type="email"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
                       placeholder="your@email.com"
-                      style={{ 
-                        width: '100%', 
-                        padding: '10px', 
-                        borderRadius: '8px', 
-                        border: '1px solid #ddd',
-                        fontSize: '14px'
-                      }}
                     />
                   </div>
-                  
-                  <div style={{ marginBottom: '15px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Password</label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        required
-                        placeholder="••••••"
-                        style={{ 
-                          width: '100%', 
-                          padding: '10px', 
-                          borderRadius: '8px', 
-                          border: '1px solid #ddd',
-                          fontSize: '14px'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={toggleShowPassword}
-                        style={{
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '16px'
-                        }}
-                      >
-                        {showPassword ? '🙈' : '👁️'}
-                      </button>
-                    </div>
+                </div>
+                
+                <div className="form-group">
+                  <label>Password</label>
+                  <div className="input-wrapper">
+                    <span className="input-icon">🔒</span>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                      placeholder="••••••"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={toggleShowPassword}
+                    >
+                      {showPassword ? '👁️' : '🙈'}
+                    </button>
                   </div>
-                  
-                  <div style={{ marginBottom: '15px', textAlign: 'right' }}>
-                    <Link to="/forgot-password" style={{ color: '#e67e22', fontSize: '12px', textDecoration: 'none' }}>
-                      Forgot Password?
-                    </Link>
-                  </div>
-                  
-                  <button
-                    type="submit"
-                    disabled={loginLoading}
-                    style={{ 
-                      width: '100%', 
-                      padding: '11px', 
-                      backgroundColor: '#e67e22', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '8px', 
-                      cursor: 'pointer', 
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      opacity: loginLoading ? 0.7 : 1
-                    }}
-                  >
-                    {loginLoading ? 'Logging in...' : 'Login'}
-                  </button>
-                </form>
+                </div>
+                
+                <div className="form-options">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
+                    <span>Remember me</span>
+                  </label>
+                  <Link to="/forgot-password" className="forgot-link">
+                    Forgot Password?
+                  </Link>
+                </div>
+                
+                <button
+                  type="submit"
+                  className="btn-submit"
+                  disabled={loginLoading}
+                >
+                  {loginLoading ? (
+                    <span className="btn-loading">Signing in...</span>
+                  ) : (
+                    'Sign In →'
+                  )}
+                </button>
+              </form>
+              
+              <div className="auth-divider">
+                <span>Or continue with</span>
+              </div>
+              
+              <div className="social-login">
+                <button className="social-btn google">
+                  <span>G</span> Google
+                </button>
+                <button className="social-btn facebook">
+                  <span>f</span> Facebook
+                </button>
               </div>
             </div>
+          )}
 
-            {/* REGISTER FORM */}
-            <div style={{ flex: 1, minWidth: '250px' }}>
-              <div style={{ 
-                backgroundColor: '#f8f9fa', 
-                padding: '20px', 
-                borderRadius: '12px',
-                height: '100%'
-              }}>
-                <h3 style={{ color: '#2c3e50', marginBottom: '20px', textAlign: 'center' }}>Register</h3>
-                
-                {registerError && (
-                  <div style={{ 
-                    color: 'red', 
-                    marginBottom: '15px', 
-                    padding: '8px', 
-                    backgroundColor: '#fee', 
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    textAlign: 'center'
-                  }}>
-                    {registerError}
-                  </div>
-                )}
-                
-                <form onSubmit={handleRegister}>
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Full Name</label>
+          {/* Register Form */}
+          {activeTab === 'register' && (
+            <div className="auth-form">
+              <h2 className="form-title">Create Account</h2>
+              <p className="form-subtitle">Join our community of adventurers</p>
+              
+              {registerError && (
+                <div className="alert alert-error">
+                  <span className="alert-icon">⚠️</span>
+                  <span>{registerError}</span>
+                </div>
+              )}
+              
+              <form onSubmit={handleRegister}>
+                <div className="form-group">
+                  <label>Full Name</label>
+                  <div className="input-wrapper">
+                    <span className="input-icon">👤</span>
                     <input
                       type="text"
                       value={registerFullName}
                       onChange={(e) => setRegisterFullName(e.target.value)}
                       required
                       placeholder="John Doe"
-                      style={{ 
-                        width: '100%', 
-                        padding: '10px', 
-                        borderRadius: '8px', 
-                        border: '1px solid #ddd',
-                        fontSize: '14px'
-                      }}
                     />
                   </div>
-                  
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Email</label>
+                </div>
+                
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <div className="input-wrapper">
+                    <span className="input-icon">📧</span>
                     <input
                       type="email"
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
                       required
                       placeholder="your@email.com"
-                      style={{ 
-                        width: '100%', 
-                        padding: '10px', 
-                        borderRadius: '8px', 
-                        border: '1px solid #ddd',
-                        fontSize: '14px'
-                      }}
                     />
                   </div>
-                  
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Phone (Optional)</label>
+                </div>
+                
+                <div className="form-group">
+                  <label>Phone Number (Optional)</label>
+                  <div className="input-wrapper">
+                    <span className="input-icon">📞</span>
                     <input
                       type="tel"
                       value={registerPhone}
                       onChange={(e) => setRegisterPhone(e.target.value)}
-                      placeholder="0888888888"
-                      style={{ 
-                        width: '100%', 
-                        padding: '10px', 
-                        borderRadius: '8px', 
-                        border: '1px solid #ddd',
-                        fontSize: '14px'
-                      }}
+                      placeholder="+265 888 123 456"
                     />
                   </div>
-                  
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Password</label>
+                </div>
+                
+                <div className="form-group">
+                  <label>Password</label>
+                  <div className="input-wrapper">
+                    <span className="input-icon">🔒</span>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={registerPassword}
                       onChange={(e) => setRegisterPassword(e.target.value)}
                       required
                       placeholder="•••••• (min 6)"
-                      style={{ 
-                        width: '100%', 
-                        padding: '10px', 
-                        borderRadius: '8px', 
-                        border: '1px solid #ddd',
-                        fontSize: '14px'
-                      }}
                     />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={toggleShowPassword}
+                    >
+                      {showPassword ? '👁️' : '🙈'}
+                    </button>
                   </div>
-                  
-                  <div style={{ marginBottom: '15px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Confirm Password</label>
+                  <p className="input-hint">Password must be at least 6 characters</p>
+                </div>
+                
+                <div className="form-group">
+                  <label>Confirm Password</label>
+                  <div className="input-wrapper">
+                    <span className="input-icon">🔒</span>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={registerConfirmPassword}
                       onChange={(e) => setRegisterConfirmPassword(e.target.value)}
                       required
                       placeholder="••••••"
-                      style={{ 
-                        width: '100%', 
-                        padding: '10px', 
-                        borderRadius: '8px', 
-                        border: '1px solid #ddd',
-                        fontSize: '14px'
-                      }}
                     />
                   </div>
-                  
-                  <button
-                    type="submit"
-                    disabled={registerLoading}
-                    style={{ 
-                      width: '100%', 
-                      padding: '11px', 
-                      backgroundColor: '#2ecc71', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '8px', 
-                      cursor: 'pointer', 
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      opacity: registerLoading ? 0.7 : 1
-                    }}
-                  >
-                    {registerLoading ? 'Creating Account...' : 'Create Account'}
-                  </button>
-                </form>
+                </div>
+                
+                <button
+                  type="submit"
+                  className="btn-submit btn-register"
+                  disabled={registerLoading}
+                >
+                  {registerLoading ? (
+                    <span className="btn-loading">Creating account...</span>
+                  ) : (
+                    'Create Account →'
+                  )}
+                </button>
+              </form>
+              
+              <div className="auth-divider">
+                <span>By creating an account, you agree to our</span>
+              </div>
+              <div className="terms-links">
+                <Link to="/terms">Terms of Service</Link> &nbsp;|&nbsp;
+                <Link to="/privacy">Privacy Policy</Link>
               </div>
             </div>
-          </div>
-          
-          <div style={{ 
-            textAlign: 'center', 
-            marginTop: '25px', 
-            paddingTop: '15px', 
-            borderTop: '1px solid #eee',
-            fontSize: '11px',
-            color: '#999'
-          }}>
-            <p>By continuing, you agree to our Terms of Service and Privacy Policy</p>
-          </div>
+          )}
         </div>
       </div>
     </div>
