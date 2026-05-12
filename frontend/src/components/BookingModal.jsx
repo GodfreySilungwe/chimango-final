@@ -51,7 +51,7 @@ const BookingModal = ({ activity, onClose }) => {
       setBookingSuccess(true);
       setTimeout(() => {
         onClose();
-        window.location.href = '/my-bookings';
+        window.location.href = '/bookings';
       }, 2000);
     } catch (error) {
       console.error('Booking error:', error);

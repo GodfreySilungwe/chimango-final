@@ -40,6 +40,7 @@ function App() {
               <Route path="/profile" element={<UserProfilePage />} />
               <Route path="/tours/:id" element={<TourDetailPage />} />
               <Route path="/bookings" element={<BookingsPage />} />
+              <Route path="/my-bookings" element={<BookingsPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/admin" element={<AdminDashboard />} />
