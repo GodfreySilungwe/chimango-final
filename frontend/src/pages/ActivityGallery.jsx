@@ -30,11 +30,46 @@ const ActivityGallery = () => {
       }
     }
     fetchActivities();
+    
+    // Check for pending booking to restore
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('restoreBooking') === 'true') {
+      const pendingBooking = sessionStorage.getItem('pendingBooking');
+      if (pendingBooking) {
+        try {
+          const booking = JSON.parse(pendingBooking);
+          // We'll restore it after activities load
+          sessionStorage.setItem('_restorePendingBooking', 'true');
+        } catch (e) {
+          console.error('Failed to parse pending booking:', e);
+        }
+      }
+    }
   }, []);
 
   useEffect(() => {
     if (activities.length > 0) {
       filterActivities();
+      
+      // Restore pending booking if needed
+      const shouldRestore = sessionStorage.getItem('_restorePendingBooking');
+      if (shouldRestore === 'true') {
+        const pendingBooking = sessionStorage.getItem('pendingBooking');
+        if (pendingBooking) {
+          try {
+            const booking = JSON.parse(pendingBooking);
+            // Find the activity by ID
+            const activity = activities.find(a => a._id === booking.activityId || a.id === booking.activityId);
+            if (activity) {
+              setSelectedActivity(activity);
+              sessionStorage.setItem('_pendingBookingToRestore', JSON.stringify(booking));
+              sessionStorage.removeItem('_restorePendingBooking');
+            }
+          } catch (e) {
+            console.error('Failed to restore booking:', e);
+          }
+        }
+      }
     }
   }, [searchTerm, selectedCategory, selectedRegion, selectedDifficulty, activities]);
 

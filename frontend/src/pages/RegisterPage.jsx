@@ -78,7 +78,17 @@ const RegisterPage = () => {
       console.log('Attempting to register:', formData.email);
       await register(formData.fullName, formData.email, formData.password, formData.phone);
       console.log('Registration successful');
-      navigate('/');
+      
+      // Check if user was trying to book before registering
+      const pendingBooking = sessionStorage.getItem('pendingBooking');
+      const params = new URLSearchParams(window.location.search);
+      
+      if (pendingBooking && params.get('redirect') === 'booking') {
+        // Redirect to activities to restore booking
+        window.location.href = '/activities?restoreBooking=true';
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       console.error('Registration error:', err);
       setError(err.message || 'Registration failed. Please try again.');

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { API_URL } from '../config';
 import ImageGalleryModal from './ImageGalleryModal';
 
@@ -29,6 +29,37 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
   const allImages = activity.images && activity.images.length > 0 
     ? [activity.mainImage, ...activity.images] 
     : [activity.mainImage];
+
+  // Restore pending booking data if available
+  useEffect(() => {
+    const pendingBooking = sessionStorage.getItem('_pendingBookingToRestore');
+    if (pendingBooking) {
+      try {
+        const booking = JSON.parse(pendingBooking);
+        setNumberOfDays(booking.numberOfDays || 1);
+        setNumberOfPeople(booking.numberOfPeople || 1);
+        setSelectedDate(booking.selectedDate || '');
+        setNationality(booking.nationality || 'international');
+        setAirportPickup(booking.airportPickup || false);
+        setFlightNumber(booking.flightNumber || '');
+        setArrivalTime(booking.arrivalTime || '');
+        setShowBookingForm(true);
+        setActiveTab('trip');
+        
+        if (booking.personalDetails) {
+          setPersonalDetails(prev => ({
+            ...prev,
+            ...booking.personalDetails
+          }));
+        }
+        
+        // Clear the restoration flag
+        sessionStorage.removeItem('_pendingBookingToRestore');
+      } catch (e) {
+        console.error('Failed to restore pending booking:', e);
+      }
+    }
+  }, []);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
@@ -172,6 +203,8 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
     };
   };
 
+  const [showLoadingBooking, setShowLoadingBooking] = useState(false);
+
   const handleInternationalBooking = async () => {
     if (!selectedDate) {
       alert('Please select a date');
@@ -257,7 +290,12 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
       sessionStorage.setItem('lastBooking', JSON.stringify(createdBooking));
       setShowInternationalConfirm(false);
       setShowBookingForm(false);
-      window.location.href = `/booking-confirmation?bookingCode=${newBookingCode}`;
+      setShowLoadingBooking(true);
+      
+      // Wait a moment to ensure booking is saved before redirecting
+      setTimeout(() => {
+        window.location.href = `/booking-confirmation?bookingCode=${newBookingCode}`;
+      }, 1500);
       
     } catch (error) {
       console.error('Booking error:', error);
@@ -363,7 +401,12 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
       sessionStorage.setItem('pendingPayment', JSON.stringify(paymentData));
       
       setShowBookingForm(false);
-      window.location.href = `/payment?bookingCode=${newBookingCode}`;
+      setShowLoadingBooking(true);
+      
+      // Wait a moment to ensure booking is saved before redirecting
+      setTimeout(() => {
+        window.location.href = `/payment?bookingCode=${newBookingCode}`;
+      }, 1500);
       
     } catch (error) {
       console.error('Booking error:', error);
@@ -383,7 +426,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
     }
 
     if (!user || !user.id) {
-      alert('Please login to complete your booking');
+      alert('Please register or login to complete your booking');
       const pendingBookingData = {
         activityId: activity._id,
         activityName: activity.name,
@@ -398,7 +441,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         totalPrice
       };
       sessionStorage.setItem('pendingBooking', JSON.stringify(pendingBookingData));
-      window.location.href = `/login?redirect=booking`;
+      window.location.href = `/register?redirect=booking`;
       return;
     }
     
@@ -437,6 +480,43 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
           }
         `}
       </style>
+
+      {showLoadingBooking && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 3000,
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <div style={{
+            textAlign: 'center',
+            backgroundColor: 'white',
+            padding: '3rem 2rem',
+            borderRadius: '12px',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              border: '4px solid #f0f0f0',
+              borderTop: '4px solid #e67e22',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 1.5rem'
+            }}></div>
+            <h2 style={{ color: '#2c3e50', marginBottom: '0.5rem' }}>Loading Your Booking</h2>
+            <p style={{ color: '#7f8c8d', fontSize: '16px' }}>Please wait while we process your booking...</p>
+          </div>
+        </div>
+      )}
 
       <div style={{
         maxWidth: '1200px',

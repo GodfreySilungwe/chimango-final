@@ -169,6 +169,9 @@ const BookingConfirmation = () => {
           <button className="action-btn home" onClick={() => navigate('/')}>
             🏠 Home
           </button>
+          <button className="action-btn experiences" onClick={() => navigate('/activities')}>
+            🌍 Explore Experiences
+          </button>
           <button className="action-btn download" onClick={handleDownloadPDF}>
             📄 Download PDF
           </button>

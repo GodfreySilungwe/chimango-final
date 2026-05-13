@@ -41,9 +41,11 @@ const LoginPage = () => {
       }
       
       const pendingBooking = sessionStorage.getItem('pendingBooking');
-      if (pendingBooking) {
-        sessionStorage.removeItem('pendingBooking');
-        navigate('/activities');
+      const params = new URLSearchParams(window.location.search);
+      
+      if (pendingBooking && params.get('redirect') === 'booking') {
+        // Redirect to activities to restore booking, keeping the pending data
+        window.location.href = '/activities?restoreBooking=true';
       } else {
         navigate('/');
       }
@@ -87,9 +89,11 @@ const LoginPage = () => {
       await register(registerFullName, registerEmail, registerPassword, registerPhone);
       
       const pendingBooking = sessionStorage.getItem('pendingBooking');
-      if (pendingBooking) {
-        sessionStorage.removeItem('pendingBooking');
-        navigate('/activities');
+      const params = new URLSearchParams(window.location.search);
+      
+      if (pendingBooking && params.get('redirect') === 'booking') {
+        // Redirect to activities to restore booking, keeping the pending data
+        window.location.href = '/activities?restoreBooking=true';
       } else {
         navigate('/');
       }
