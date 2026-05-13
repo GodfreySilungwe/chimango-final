@@ -59,7 +59,7 @@ const PaymentPage = () => {
           bookingCode: booking.bookingCode,
           totalPrice: booking.totalPrice,
           personalDetails: booking.personalDetails,
-          activityName: booking.selectedActivities?.[0]?.activity?.name || 'Activity',
+          activityName: booking.selectedActivities?.[0]?.activity?.name || booking.selectedActivities?.[0]?.activity || 'Activity',
           selectedDate: booking.selectedActivities?.[0]?.selectedDate,
           booking: booking
         };

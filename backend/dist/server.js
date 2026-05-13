@@ -788,7 +788,11 @@ app.post('/api/check-availability', async (req, res) => {
     
     bookings.forEach(booking => {
       booking.selectedActivities.forEach(activity => {
-        if (activity.activity === activityId && 
+        const bookedActivityId = typeof activity.activity === 'object'
+          ? activity.activity.id || activity.activity._id
+          : activity.activity;
+
+        if (bookedActivityId === activityId && 
             new Date(activity.selectedDate).toDateString() === new Date(selectedDate).toDateString()) {
           totalPeopleBooked += activity.numberOfPeople;
         }

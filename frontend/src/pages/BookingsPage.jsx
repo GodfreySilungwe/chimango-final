@@ -203,7 +203,7 @@ const BookingsPage = () => {
                     <div className="booking-activities">
                       {booking.selectedActivities?.map((item, idx) => (
                         <div className="activity-detail" key={idx}>
-                          <h4 className="activity-name">{item.activity?.name || 'Activity'}</h4>
+                          <h4 className="activity-name">{item.activity?.name || item.activity || 'Activity'}</h4>
                           <div className="activity-info-grid">
                             <div className="info-item">
                               <span className="info-icon">📍</span>

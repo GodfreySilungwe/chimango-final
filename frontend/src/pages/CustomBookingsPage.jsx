@@ -149,7 +149,11 @@ const CustomBookingsPage = () => {
         userId: user.id,
         selectedActivities: [
           {
-            activity: "custom-journey",
+            activity: {
+              name: formData.location,
+              location: formData.location,
+              category: formData.travelStyle
+            },
             numberOfDays: 1,
             numberOfPeople: formData.numberOfPeople,
             totalPrice: 0,

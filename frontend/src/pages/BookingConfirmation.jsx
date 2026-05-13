@@ -103,7 +103,7 @@ const BookingConfirmation = () => {
     const status = booking?.status === 'pending' ? 'PENDING' : 'CONFIRMED';
     const message = `🎉 Booking ${status} - Chimango Tour%0A%0A` +
       `Booking Code: ${booking.bookingCode}%0A` +
-      `Activity: ${activity?.name}%0A` +
+      `Activity: ${activity?.name || activity || 'Activity'}%0A` +
       `Date: ${new Date(booking.selectedActivities[0]?.selectedDate).toLocaleDateString()}%0A` +
       `Days: ${booking.selectedActivities[0]?.numberOfDays}%0A` +
       `People: ${booking.selectedActivities[0]?.numberOfPeople}%0A` +

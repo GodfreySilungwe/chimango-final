@@ -117,7 +117,12 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
     const bookingData = {
       userId: user.id,
       selectedActivities: [{
-        activity: activity._id || activity.id,
+        activity: {
+          id: activity._id || activity.id,
+          name: activity.name,
+          location: activity.location,
+          category: activity.category
+        },
         numberOfDays,
         numberOfPeople,
         totalPrice: totalPrice,
@@ -200,7 +205,12 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
       const bookingData = {
         userId: user.id,
         selectedActivities: [{
-          activity: activity._id || activity.id,
+          activity: {
+            id: activity._id || activity.id,
+            name: activity.name,
+            location: activity.location,
+            category: activity.category
+          },
           numberOfDays,
           numberOfPeople,
           totalPrice: totalPrice,
@@ -289,7 +299,12 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
       const bookingData = {
         userId: user.id,
         selectedActivities: [{
-          activity: activity._id || activity.id,
+          activity: {
+            id: activity._id || activity.id,
+            name: activity.name,
+            location: activity.location,
+            category: activity.category
+          },
           numberOfDays,
           numberOfPeople,
           totalPrice: totalPrice,
