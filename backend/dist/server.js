@@ -468,6 +468,45 @@ app.post('/api/users/change-password', authMiddleware, async (req, res) => {
   }
 });
 
+app.post('/api/payment-request', async (req, res) => {
+  const body = parseBody(req);
+  const {
+    bookingCode,
+    paymentMethod,
+    paymentReference,
+    amount,
+    customerName,
+    customerPhone,
+    customerEmail,
+    activityName,
+    selectedDate,
+    status
+  } = body;
+
+  if (!bookingCode || !paymentMethod || !paymentReference || !amount || !customerName) {
+    return res.status(400).json({ message: 'Missing required payment request fields' });
+  }
+
+  try {
+    const payment = await PaymentRequest.create({
+      bookingCode,
+      paymentMethod,
+      paymentReference,
+      amount,
+      customerName,
+      customerPhone,
+      customerEmail,
+      activityName,
+      selectedDate,
+      status: status || 'pending'
+    });
+    res.status(201).json(payment);
+  } catch (error) {
+    console.error('Error creating payment request:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 app.get('/api/payment-requests/pending', authMiddleware, async (req, res) => {
   if (req.userRole !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
@@ -478,6 +517,23 @@ app.get('/api/payment-requests/pending', authMiddleware, async (req, res) => {
     res.json(payments);
   } catch (error) {
     console.error('Error fetching pending payment requests:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.put('/api/payment-requests/:id/verify', authMiddleware, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+
+  try {
+    const payment = await PaymentRequest.markAsVerified(req.params.id);
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment request not found' });
+    }
+    res.json({ success: true, payment });
+  } catch (error) {
+    console.error('Error verifying payment request:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

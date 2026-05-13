@@ -107,6 +107,7 @@ const BookingsPage = () => {
   const getStatusBadge = (status) => {
     const config = {
       confirmed: { class: 'status-confirmed', icon: '✓', text: 'Confirmed' },
+      verified: { class: 'status-verified', icon: '✅', text: 'Verified' },
       pending: { class: 'status-pending', icon: '⏳', text: 'Pending' },
       cancelled: { class: 'status-cancelled', icon: '✗', text: 'Cancelled' },
       completed: { class: 'status-completed', icon: '★', text: 'Completed' }

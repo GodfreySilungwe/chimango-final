@@ -1,9 +1,11 @@
 const nodemailer = require('nodemailer');
 
+const EMAIL_SENDER = 'goshsolutions26@gmail.com';
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER,
+    user: process.env.EMAIL_USER || EMAIL_SENDER,
     pass: process.env.EMAIL_PASS
   }
 });
@@ -11,7 +13,7 @@ const transporter = nodemailer.createTransport({
 // Send Welcome Email
 const sendWelcomeEmail = async (email, name) => {
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: EMAIL_SENDER,
     to: email,
     subject: 'Welcome to Chimango Tourism!',
     html: `
@@ -53,7 +55,7 @@ const sendPasswordResetEmail = async (email, name, resetToken) => {
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
   
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: EMAIL_SENDER,
     to: email,
     subject: 'Password Reset Request - Chimango Tourism',
     html: `
@@ -90,7 +92,7 @@ const sendBookingConfirmationEmail = async (email, name, booking) => {
   const activity = booking.selectedActivities?.[0]?.activity;
   
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: EMAIL_SENDER,
     to: email,
     subject: `Booking Confirmed - ${booking.bookingCode}`,
     html: `
@@ -135,7 +137,7 @@ const sendBookingConfirmationEmail = async (email, name, booking) => {
 // Send Payment Verification Email
 const sendPaymentVerificationEmail = async (email, name, bookingCode) => {
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: EMAIL_SENDER,
     to: email,
     subject: `Payment Verified - Booking ${bookingCode}`,
     html: `
