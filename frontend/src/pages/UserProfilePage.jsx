@@ -201,6 +201,7 @@ const UserProfilePage = () => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       confirmed: { class: 'status-confirmed', text: 'Confirmed' },
+      verified: { class: 'status-verified', text: 'Verified' },
       pending: { class: 'status-pending', text: 'Pending' },
       cancelled: { class: 'status-cancelled', text: 'Cancelled' },
       completed: { class: 'status-completed', text: 'Completed' }

@@ -74,10 +74,27 @@ const CustomBooking = {
     return items.filter(item => item.type === 'CUSTOMBOOKING');
   },
 
-  // Update booking
+  // Update booking and keep all booking copies in sync
   async update(bookingId, updateData) {
-    updateData.updatedAt = Date.now();
-    return await db.updateItem(`CUSTOMBOOKING#${bookingId}`, `PROFILE#${bookingId}`, updateData);
+    const booking = await this.findById(bookingId);
+    if (!booking) {
+      throw new Error('Booking not found');
+    }
+
+    const updatePromises = [
+      db.updateItem(`CUSTOMBOOKING#${bookingId}`, `PROFILE#${bookingId}`, updateData)
+    ];
+
+    if (booking.bookingCode) {
+      updatePromises.push(db.updateItem(`BOOKINGCODE#${booking.bookingCode}`, `PROFILE#${bookingId}`, updateData));
+    }
+
+    if (booking.userId) {
+      updatePromises.push(db.updateItem(`USER#${booking.userId}`, `CUSTOMBOOKING#${bookingId}`, updateData));
+    }
+
+    const results = await Promise.all(updatePromises);
+    return results[0];
   },
 
   // Delete booking

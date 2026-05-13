@@ -37,7 +37,7 @@ const customBookingSchema = new mongoose.Schema({
   },
   status: { 
     type: String, 
-    enum: ['pending', 'confirmed', 'cancelled', 'completed'], 
+    enum: ['pending', 'confirmed', 'verified', 'cancelled', 'completed'], 
     default: 'pending' 
   },
   paymentStatus: { 
@@ -71,7 +71,7 @@ const customBookingSchema = new mongoose.Schema({
   nationality: { 
     type: String, 
     enum: ['malawian', 'international'], 
-    default: 'malawian' 
+    default: 'international' 
   },
   paymentMethod: { 
     type: String, 

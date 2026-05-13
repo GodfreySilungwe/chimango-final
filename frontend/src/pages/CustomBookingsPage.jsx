@@ -22,7 +22,7 @@ const CustomBookingsPage = () => {
     airportPickup: false,
     flightNumber: '',
     arrivalTime: '',
-    nationality: 'malawian'
+    nationality: 'international'
   });
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -222,7 +222,7 @@ const CustomBookingsPage = () => {
         airportPickup: false,
         flightNumber: '',
         arrivalTime: '',
-        nationality: 'malawian'
+        nationality: 'international'
       });
       
     } catch (err) {
@@ -375,8 +375,8 @@ const CustomBookingsPage = () => {
                   required
                   style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
                 >
-                  <option value="malawian">🇲🇼 Malawian (Local)</option>
                   <option value="international">🌍 International</option>
+                  <option value="malawian">🇲🇼 Malawian (Local)</option>
                 </select>
               </label>
             </div>

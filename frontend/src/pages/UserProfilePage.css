@@ -362,6 +362,11 @@
   color: #856404;
 }
 
+.status-verified {
+  background: #d4edda;
+  color: #155724;
+}
+
 .status-cancelled {
   background: #f8d7da;
   color: #721c24;

@@ -138,11 +138,15 @@ const BookingConfirmation = () => {
   }
 
   const isConfirmed = booking.status === 'confirmed';
+  const isVerified = booking.status === 'verified';
   const isCancelled = booking.status === 'cancelled';
   const isCompleted = booking.status === 'completed';
   const isPending = !booking.status || booking.status === 'pending';
 
   const getStatusConfig = () => {
+    if (isVerified) {
+      return { icon: '✅', title: 'Booking Verified!', message: 'Your booking has been verified by our admin team. Thank you for choosing Chimango Tour!', color: '#2ecc71' };
+    }
     if (isConfirmed) {
       return { icon: '✅', title: 'Booking Confirmed!', message: 'Your booking has been confirmed. Thank you for choosing Chimango Tour!', color: '#2ecc71' };
     }

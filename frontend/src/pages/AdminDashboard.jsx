@@ -268,6 +268,22 @@ const AdminDashboard = () => {
     }
   };
 
+  const verifyBooking = async (bookingId, customerName) => {
+    if (!confirm(`Verify booking for ${customerName}?`)) return;
+    
+    try {
+      await fetch(`${API_URL}/api/custom-bookings/${bookingId}/verify`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert(`✅ Booking verified for ${customerName}`);
+      fetchBookings();
+    } catch (error) {
+      console.error('Booking verification error:', error);
+      alert('❌ Failed to verify booking');
+    }
+  };
+
   const resetTourForm = () => {
     setNewTour({
       name: '',
@@ -633,7 +649,7 @@ const AdminDashboard = () => {
                     <td><span className={`status-badge ${booking.status}`}>{booking.status}</span></td>
                     <td>
                       {booking.status === 'pending' && (
-                        <button className="btn-verify" onClick={() => verifyPayment(booking._id, booking.bookingCode, booking.personalDetails?.fullName)}>
+                        <button className="btn-verify" onClick={() => verifyBooking(booking._id || booking.id, booking.personalDetails?.fullName)}>
                           Verify
                         </button>
                       )}

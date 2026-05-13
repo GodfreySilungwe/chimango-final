@@ -14,9 +14,8 @@ const BookingModal = ({ activity, onClose }) => {
 
   const handleBooking = async () => {
     if (!user) {
-      alert('Please login to book activities');
       onClose();
-      window.location.href = '/login';
+      window.location.href = '/register';
       return;
     }
 

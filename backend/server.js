@@ -422,6 +422,21 @@ const parseBody = (req) => {
   return body;
 };
 
+// Get regular bookings by user ID
+app.get('/api/bookings/user/:userId', async (req, res) => {
+  console.log('=== GET BOOKINGS BY USER ===');
+  console.log('UserId:', req.params.userId);
+  
+  try {
+    const bookings = await Booking.findByUserId(req.params.userId);
+    console.log(`Found ${bookings.length} bookings for user`);
+    res.json(bookings);
+  } catch (error) {
+    console.error('Error fetching bookings by user:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get custom bookings by user ID
 app.get('/api/custom-bookings/user/:userId', async (req, res) => {
   console.log('=== GET CUSTOM BOOKINGS BY USER ===');
@@ -519,7 +534,7 @@ app.post('/api/custom-bookings', async (req, res) => {
       flightNumber: flightNumber || '',
       arrivalTime: arrivalTime || '',
       personalDetails: personalDetails || {},
-      nationality: nationality || 'malawian',
+      nationality: nationality || 'international',
       paymentMethod: paymentMethod || null,
       status: 'pending',
       paymentStatus: 'pending'
@@ -544,6 +559,26 @@ app.post('/api/custom-bookings', async (req, res) => {
       message: error.message,
       errorType: error.name
     });
+  }
+});
+
+// Verify a booking (admin action)
+app.put('/api/custom-bookings/:id/verify', async (req, res) => {
+  console.log('=== VERIFY CUSTOM BOOKING ===');
+  console.log('Booking ID:', req.params.id);
+  
+  try {
+    const booking = await CustomBooking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    
+    const updated = await CustomBooking.update(req.params.id, { status: 'verified' });
+    
+    res.json({ success: true, booking: updated });
+  } catch (error) {
+    console.error('Error verifying booking:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
