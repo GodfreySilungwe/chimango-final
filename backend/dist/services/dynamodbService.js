@@ -161,26 +161,41 @@ async function scanTable(filterExpression = null, expressionValues = null) {
  * Generic update item
  */
 async function updateItem(pk, sk, updateData) {
-  const updateExpression = "SET " + Object.keys(updateData).map((key, idx) => `${key} = :val${idx}`).join(", ") + ", updatedAt = :updatedAt";
-  const expressionAttributeValues = {
-    ...Object.entries(updateData).reduce((acc, [key, val], idx) => {
-      acc[`:val${idx}`] = val;
-      return acc;
-    }, {}),
-    ":updatedAt": Date.now()
-  };
-  
+  if (!updateData || typeof updateData !== 'object' || Object.keys(updateData).length === 0) {
+    throw new Error('No update data provided');
+  }
+
+  const filteredEntries = Object.entries(updateData).filter(
+    ([key]) => key !== 'PK' && key !== 'SK' && key !== 'updatedAt'
+  );
+
+  const expressionAttributeNames = { '#updatedAt': 'updatedAt' };
+  const expressionAttributeValues = { ':updatedAt': Date.now() };
+  const setParts = [];
+
+  filteredEntries.forEach(([key, val], idx) => {
+    const nameKey = `#key${idx}`;
+    const valueKey = `:val${idx}`;
+    expressionAttributeNames[nameKey] = key;
+    expressionAttributeValues[valueKey] = val;
+    setParts.push(`${nameKey} = ${valueKey}`);
+  });
+
+  setParts.push('#updatedAt = :updatedAt');
+
   const params = {
     TableName: TABLE_NAME,
     Key: {
       PK: pk,
       SK: sk
     },
-    UpdateExpression: updateExpression,
+    UpdateExpression: `SET ${setParts.join(', ')}`,
+    ExpressionAttributeNames: expressionAttributeNames,
     ExpressionAttributeValues: expressionAttributeValues,
-    ReturnValues: "ALL_NEW"
+    ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
+    ReturnValues: 'ALL_NEW'
   };
-  
+
   const result = await docClient.send(new UpdateCommand(params));
   return result.Attributes;
 }

@@ -45,7 +45,14 @@ const Booking = {
   // Find bookings by user ID
   async findByUserId(userId) {
     const items = await db.queryByPK(`USER#${userId}`);
-    return items.filter(item => item.type === 'BOOKING');
+    const bookings = items.filter(item => item.type === 'BOOKING');
+    if (bookings.length > 0) {
+      return bookings;
+    }
+
+    // Fallback: scan primary booking items for the userId
+    const allBookings = await db.queryByType('BOOKING');
+    return allBookings.filter(item => item.PK?.startsWith('BOOKING#') && item.userId === userId);
   },
 
   // Update booking

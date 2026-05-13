@@ -88,6 +88,7 @@ const authMiddleware = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
+    req.userRole = decoded.role;
     next();
   } catch (error) {
     return res.status(401).json({ message: 'Invalid token' });
@@ -397,6 +398,90 @@ app.get('/api/users/me', authMiddleware, async (req, res) => {
   }
 });
 
+app.get('/api/users', authMiddleware, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+
+  try {
+    const users = await User.getAll();
+    res.json(users.map(u => ({
+      id: u.id,
+      fullName: u.fullName,
+      email: u.email,
+      phone: u.phone,
+      role: u.role
+    })));
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.put('/api/users/profile', authMiddleware, async (req, res) => {
+  try {
+    const { fullName, phone } = req.body;
+    const updateData = {};
+
+    if (fullName) updateData.fullName = fullName;
+    if (phone) updateData.phone = phone;
+
+    const updatedUser = await User.update(req.userId, updateData);
+    res.json({
+      id: updatedUser.id,
+      fullName: updatedUser.fullName,
+      email: updatedUser.email,
+      phone: updatedUser.phone,
+      role: updatedUser.role
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/users/change-password', authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Both current and new password are required' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    await User.update(req.userId, { password: hashedPassword });
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/payment-requests/pending', authMiddleware, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+
+  try {
+    const payments = await PaymentRequest.find({ status: 'pending' });
+    res.json(payments);
+  } catch (error) {
+    console.error('Error fetching pending payment requests:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // ==================== CUSTOM BOOKING ROUTES ====================
 
 // Helper function to parse request body (handles Buffer from API Gateway)
@@ -578,7 +663,7 @@ app.put('/api/custom-bookings/:id/verify', async (req, res) => {
     res.json({ success: true, booking: updated });
   } catch (error) {
     console.error('Error verifying booking:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
@@ -601,7 +686,7 @@ app.put('/api/custom-bookings/:id/cancel', async (req, res) => {
     res.json({ message: 'Booking cancelled successfully', booking: updated });
   } catch (error) {
     console.error('Cancel error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

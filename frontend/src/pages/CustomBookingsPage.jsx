@@ -107,9 +107,16 @@ const CustomBookingsPage = () => {
     if (formData.numberOfPeople < 1) {
       errors.push('Number of people must be at least 1');
     }
-    
-    // Flight number is ALWAYS optional - no validation needed
-    
+    if (formData.nationality === 'malawian' && !formData.phone.trim()) {
+      errors.push('Phone number is required for Malawian customers');
+    }
+    if (formData.airportPickup && !formData.arrivalTime.trim()) {
+      errors.push('Arrival time is required when airport pickup is selected');
+    }
+    if (!formData.budget.trim()) {
+      errors.push('Budget is required');
+    }
+
     return errors;
   };
 

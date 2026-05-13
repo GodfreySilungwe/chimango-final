@@ -24,7 +24,7 @@ const CustomBooking = {
       arrivalTime: bookingData.arrivalTime || '',
       personalDetails: bookingData.personalDetails || {},
       bookingCode: bookingCode,
-      nationality: bookingData.nationality || 'malawian',
+      nationality: bookingData.nationality || 'international',
       paymentMethod: bookingData.paymentMethod || null,
       createdAt: Date.now(),
       updatedAt: Date.now()
@@ -65,13 +65,26 @@ const CustomBooking = {
   // Find by booking code
   async findByBookingCode(bookingCode) {
     const results = await db.queryByPK(`BOOKINGCODE#${bookingCode}`);
-    return results[0] || null;
+    if (results.length > 0) {
+      return results[0];
+    }
+
+    // Fallback: scan for the booking code on primary booking items
+    const allBookings = await db.queryByType('CUSTOMBOOKING');
+    return allBookings.find(item => item.PK?.startsWith('CUSTOMBOOKING#') && item.bookingCode === bookingCode) || null;
   },
 
   // Find by user ID
   async findByUserId(userId) {
     const items = await db.queryByPK(`USER#${userId}`);
-    return items.filter(item => item.type === 'CUSTOMBOOKING');
+    const bookings = items.filter(item => item.type === 'CUSTOMBOOKING');
+    if (bookings.length > 0) {
+      return bookings;
+    }
+
+    // Fallback: scan primary booking items for the userId
+    const allBookings = await db.queryByType('CUSTOMBOOKING');
+    return allBookings.filter(item => item.PK?.startsWith('CUSTOMBOOKING#') && item.userId === userId);
   },
 
   // Update booking and keep all booking copies in sync
@@ -81,20 +94,43 @@ const CustomBooking = {
       throw new Error('Booking not found');
     }
 
-    const updatePromises = [
-      db.updateItem(`CUSTOMBOOKING#${bookingId}`, `PROFILE#${bookingId}`, updateData)
-    ];
+    const primaryResult = await db.updateItem(`CUSTOMBOOKING#${bookingId}`, `PROFILE#${bookingId}`, updateData);
+    const updatedBooking = { ...booking, ...primaryResult };
 
-    if (booking.bookingCode) {
-      updatePromises.push(db.updateItem(`BOOKINGCODE#${booking.bookingCode}`, `PROFILE#${bookingId}`, updateData));
+    const secondaryUpdates = [];
+    const bookingCode = primaryResult.bookingCode || booking.bookingCode;
+    const userId = primaryResult.userId || booking.userId;
+
+    if (bookingCode) {
+      secondaryUpdates.push(
+        db.putItem({
+          PK: `BOOKINGCODE#${bookingCode}`,
+          SK: `PROFILE#${bookingId}`,
+          type: 'CUSTOMBOOKING',
+          ...updatedBooking
+        }).catch(error => {
+          console.warn(`Failed to sync bookingCode index for ${bookingCode}:`, error.message);
+          return null;
+        })
+      );
     }
 
-    if (booking.userId) {
-      updatePromises.push(db.updateItem(`USER#${booking.userId}`, `CUSTOMBOOKING#${bookingId}`, updateData));
+    if (userId) {
+      secondaryUpdates.push(
+        db.putItem({
+          PK: `USER#${userId}`,
+          SK: `CUSTOMBOOKING#${bookingId}`,
+          type: 'CUSTOMBOOKING',
+          ...updatedBooking
+        }).catch(error => {
+          console.warn(`Failed to sync user index for ${userId}:`, error.message);
+          return null;
+        })
+      );
     }
 
-    const results = await Promise.all(updatePromises);
-    return results[0];
+    await Promise.all(secondaryUpdates);
+    return primaryResult;
   },
 
   // Delete booking

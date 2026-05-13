@@ -67,7 +67,7 @@ const Navbar = () => {
           </div>
           <div className="logo-text">
             <span className="logo-name">Chimango</span>
-            <span className="logo-tagline">Tours and Safari</span>
+            <span className="logo-tagline">Tours&Safari</span>
           </div>
         </Link>
 

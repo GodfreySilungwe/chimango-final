@@ -643,7 +643,7 @@ const AdminDashboard = () => {
                     <td><code>{booking.bookingCode}</code></td>
                     <td>{booking.personalDetails?.fullName || booking.user?.fullName}</td>
                     <td>{booking.personalDetails?.phone || booking.user?.phone}</td>
-                    <td>{booking.selectedActivities?.[0]?.activity?.name || 'N/A'}</td>
+                    <td>{booking.selectedActivities?.[0]?.activity?.name || booking.selectedActivities?.[0]?.activity || 'N/A'}</td>
                     <td>{booking.selectedActivities?.[0]?.selectedDate ? new Date(booking.selectedActivities[0].selectedDate).toLocaleDateString() : 'N/A'}</td>
                     <td>${booking.totalPrice}</td>
                     <td><span className={`status-badge ${booking.status}`}>{booking.status}</span></td>

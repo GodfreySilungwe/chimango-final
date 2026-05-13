@@ -212,7 +212,9 @@ const BookingConfirmation = () => {
             <div className="details-grid">
               <div className="detail-item">
                 <span className="detail-label">Activity Name</span>
-                <span className="detail-value">{booking.selectedActivities?.[0]?.activity?.name || 'Activity'}</span>
+                <span className="detail-value">
+                  {booking.selectedActivities?.[0]?.activity?.name || booking.selectedActivities?.[0]?.activity || 'Activity'}
+                </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Travel Date</span>
@@ -228,7 +230,13 @@ const BookingConfirmation = () => {
               </div>
               <div className="detail-item">
                 <span className="detail-label">Customer Type</span>
-                <span className="detail-value">{booking.nationality === 'international' ? '🌍 International' : '🇲🇼 Malawian'}</span>
+                <span className="detail-value">
+                  {booking.nationality === 'international'
+                    ? '🌍 International'
+                    : booking.nationality === 'malawian'
+                      ? '🇲🇼 Malawian'
+                      : booking.nationality || 'Unknown'}
+                </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Status</span>

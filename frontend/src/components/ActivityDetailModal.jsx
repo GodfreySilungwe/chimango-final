@@ -15,6 +15,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
   const [arrivalTime, setArrivalTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInternationalConfirm, setShowInternationalConfirm] = useState(false);
+  const [formError, setFormError] = useState('');
   const [showFullGallery, setShowFullGallery] = useState(false);
   const [personalDetails, setPersonalDetails] = useState({
     fullName: user?.fullName || '',
@@ -41,7 +42,67 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                      (activity.pricePerPerson * numberOfPeople) + 
                      (airportPickup ? 7.50 : 0);
 
+  const clearFormError = () => {
+    if (formError) setFormError('');
+  };
+
+  const validateTripStep = () => {
+    if (!selectedDate) {
+      return 'Please select a travel date before continuing.';
+    }
+    if (!numberOfDays || numberOfDays < 1) {
+      return 'Number of days must be at least 1.';
+    }
+    if (!numberOfPeople || numberOfPeople < activity.minPeople) {
+      return `Number of people must be at least ${activity.minPeople}.`;
+    }
+    if (airportPickup && !arrivalTime) {
+      return 'Arrival time is required when airport pickup is selected.';
+    }
+    return null;
+  };
+
+  const validatePersonalStep = () => {
+    if (!personalDetails.fullName.trim()) {
+      return 'Full name is required.';
+    }
+    if (!personalDetails.email.trim()) {
+      return 'Email address is required.';
+    }
+    if (!/\S+@\S+\.\S+/.test(personalDetails.email)) {
+      return 'Please enter a valid email address.';
+    }
+    if (nationality === 'malawian' && !personalDetails.phone.trim()) {
+      return 'Phone number is required for Malawian customers.';
+    }
+    if (nationality === 'international' && !personalDetails.passportNumber.trim()) {
+      return 'Passport number is required for international customers.';
+    }
+    return null;
+  };
+
+  const handleTripContinue = () => {
+    const error = validateTripStep();
+    if (error) {
+      setFormError(error);
+      return;
+    }
+    clearFormError();
+    setActiveTab('personal');
+  };
+
+  const handlePersonalContinue = () => {
+    const error = validatePersonalStep();
+    if (error) {
+      setFormError(error);
+      return;
+    }
+    clearFormError();
+    setActiveTab('summary');
+  };
+
   const handleBookClick = () => {
+    setFormError('');
     setShowBookingForm(true);
     setActiveTab('trip');
   };
@@ -297,6 +358,15 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
   };
 
   const handleSubmitBooking = () => {
+    const tripError = validateTripStep();
+    const personalError = validatePersonalStep();
+
+    if (tripError || personalError) {
+      setFormError(tripError || personalError);
+      setActiveTab(tripError ? 'trip' : 'personal');
+      return;
+    }
+
     if (!user || !user.id) {
       alert('Please login to complete your booking');
       const pendingBookingData = {
@@ -491,19 +561,24 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
               </div>
 
               <div style={{ padding: '25px' }}>
+                {formError && (
+                  <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fdecea', color: '#611a15', borderRadius: '8px', border: '1px solid #f5c6cb' }}>
+                    {formError}
+                  </div>
+                )}
                 {activeTab === 'trip' && (
                   <div>
-                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of Days</label><input type="number" min="1" max="7" value={numberOfDays} onChange={(e) => setNumberOfDays(parseInt(e.target.value))} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of People</label><input type="number" min={activity.minPeople} max={activity.maxPeople} value={numberOfPeople} onChange={(e) => setNumberOfPeople(parseInt(e.target.value))} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Travel Date</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" checked={airportPickup} onChange={(e) => setAirportPickup(e.target.checked)} /><span>✈️ Add Airport Pickup Service <strong>(USD 7.50 extra)</strong></span></label></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of Days</label><input type="number" min="1" max="7" value={numberOfDays} onChange={(e) => { setNumberOfDays(parseInt(e.target.value)); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of People</label><input type="number" min={activity.minPeople} max={activity.maxPeople} value={numberOfPeople} onChange={(e) => { setNumberOfPeople(parseInt(e.target.value)); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Travel Date</label><input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); clearFormError(); }} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" checked={airportPickup} onChange={(e) => { setAirportPickup(e.target.checked); clearFormError(); }} /><span>✈️ Add Airport Pickup Service <strong>(USD 7.50 extra)</strong></span></label></div>
                     {airportPickup && (
                       <div style={{ backgroundColor: '#f0f7ff', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-                        <div style={{ marginBottom: '10px' }}><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Flight Number (Optional)</label><input type="text" value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} placeholder="e.g., ET 1234" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                        <div><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Arrival Time</label><input type="time" value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                        <div style={{ marginBottom: '10px' }}><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Flight Number (Optional)</label><input type="text" value={flightNumber} onChange={(e) => { setFlightNumber(e.target.value); clearFormError(); }} placeholder="e.g., ET 1234" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                        <div><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Arrival Time</label><input type="time" value={arrivalTime} onChange={(e) => { setArrivalTime(e.target.value); clearFormError(); }} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
                       </div>
                     )}
-                    <button onClick={() => setActiveTab('personal')} style={{ width: '100%', padding: '14px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>Continue →</button>
+                    <button onClick={handleTripContinue} style={{ width: '100%', padding: '14px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>Continue →</button>
                   </div>
                 )}
 
@@ -512,22 +587,22 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                     <div style={{ marginBottom: '20px' }}>
                       <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Customer Type</label>
                       <div style={{ display: 'flex', gap: '15px' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px', border: nationality === 'international' ? '2px solid #3498db' : '1px solid #ddd', borderRadius: '8px', flex: 1, justifyContent: 'center' }}><input type="radio" value="international" checked={nationality === 'international'} onChange={(e) => setNationality(e.target.value)} /><span>🌍 International</span></label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px', border: nationality === 'malawian' ? '2px solid #3498db' : '1px solid #ddd', borderRadius: '8px', flex: 1, justifyContent: 'center' }}><input type="radio" value="malawian" checked={nationality === 'malawian'} onChange={(e) => setNationality(e.target.value)} /><span>🇲🇼 Malawian</span></label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px', border: nationality === 'international' ? '2px solid #3498db' : '1px solid #ddd', borderRadius: '8px', flex: 1, justifyContent: 'center' }}><input type="radio" value="international" checked={nationality === 'international'} onChange={(e) => { setNationality(e.target.value); clearFormError(); }} /><span>🌍 International</span></label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px', border: nationality === 'malawian' ? '2px solid #3498db' : '1px solid #ddd', borderRadius: '8px', flex: 1, justifyContent: 'center' }}><input type="radio" value="malawian" checked={nationality === 'malawian'} onChange={(e) => { setNationality(e.target.value); clearFormError(); }} /><span>🇲🇼 Malawian</span></label>
                       </div>
                     </div>
-                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Full Name *</label><input type="text" value={personalDetails.fullName} onChange={(e) => setPersonalDetails({...personalDetails, fullName: e.target.value})} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Email Address *</label><input type="email" value={personalDetails.email} onChange={(e) => setPersonalDetails({...personalDetails, email: e.target.value})} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                    {nationality === 'malawian' && <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Phone Number *</label><input type="tel" value={personalDetails.phone} onChange={(e) => setPersonalDetails({...personalDetails, phone: e.target.value})} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>}
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Full Name *</label><input type="text" value={personalDetails.fullName} onChange={(e) => { setPersonalDetails({...personalDetails, fullName: e.target.value}); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Email Address *</label><input type="email" value={personalDetails.email} onChange={(e) => { setPersonalDetails({...personalDetails, email: e.target.value}); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    {nationality === 'malawian' && <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Phone Number *</label><input type="tel" value={personalDetails.phone} onChange={(e) => { setPersonalDetails({...personalDetails, phone: e.target.value}); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>}
                     {nationality === 'international' && (
                       <>
-                        <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>WhatsApp / International Phone</label><input type="tel" value={personalDetails.phone} onChange={(e) => setPersonalDetails({...personalDetails, phone: e.target.value})} placeholder="Include country code (e.g., +1234567890)" style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                        <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Passport Number *</label><input type="text" value={personalDetails.passportNumber} onChange={(e) => setPersonalDetails({...personalDetails, passportNumber: e.target.value})} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                        <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>WhatsApp / International Phone</label><input type="tel" value={personalDetails.phone} onChange={(e) => { setPersonalDetails({...personalDetails, phone: e.target.value}); clearFormError(); }} placeholder="Include country code (e.g., +1234567890)" style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                        <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Passport Number *</label><input type="text" value={personalDetails.passportNumber} onChange={(e) => { setPersonalDetails({...personalDetails, passportNumber: e.target.value}); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
                       </>
                     )}
                     <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px' }}>Emergency Contact (Optional)</label><input type="text" value={personalDetails.emergencyContact} onChange={(e) => setPersonalDetails({...personalDetails, emergencyContact: e.target.value})} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
                     <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px' }}>Special Requests (Optional)</label><textarea value={personalDetails.specialRequests} onChange={(e) => setPersonalDetails({...personalDetails, specialRequests: e.target.value})} rows="3" style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} placeholder="Any special requirements..." /></div>
-                    <div style={{ display: 'flex', gap: '10px' }}><button onClick={() => setActiveTab('trip')} style={{ flex: 1, padding: '14px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>← Back</button><button onClick={() => setActiveTab('summary')} style={{ flex: 1, padding: '14px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Continue →</button></div>
+                    <div style={{ display: 'flex', gap: '10px' }}><button onClick={() => { clearFormError(); setActiveTab('trip'); }} style={{ flex: 1, padding: '14px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>← Back</button><button onClick={handlePersonalContinue} style={{ flex: 1, padding: '14px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Continue →</button></div>
                   </div>
                 )}
 

@@ -434,7 +434,7 @@ const UserProfilePage = () => {
 
                 {/* Custom Bookings */}
                 {customBookings.map((booking) => (
-                  <div className="booking-card" key={booking.id}>
+                  <div className="booking-card" key={booking.id || booking._id}>
                     <div className="booking-header">
                       <div className="booking-icon">🎒</div>
                       <div className="booking-info">
@@ -458,12 +458,12 @@ const UserProfilePage = () => {
                       </div>
                     </div>
                     {booking.status !== 'cancelled' && booking.status !== 'confirmed' && (
-                      <button 
+                      <button
                         className="btn-cancel"
-                        onClick={() => cancelBooking(booking.id, 'custom')}
-                        disabled={cancelling === booking.id}
+                        onClick={() => cancelBooking(booking.id || booking._id, 'custom')}
+                        disabled={cancelling === (booking.id || booking._id)}
                       >
-                        {cancelling === booking.id ? 'Cancelling...' : 'Cancel Booking'}
+                        {cancelling === (booking.id || booking._id) ? 'Cancelling...' : 'Cancel Booking'}
                       </button>
                     )}
                   </div>
