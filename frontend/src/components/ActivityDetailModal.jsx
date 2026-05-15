@@ -241,8 +241,6 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
 
     // NO validation for arrival time or flight number - they are OPTIONAL
 
-    setIsSubmitting(true);
-    startLoading('Processing your international booking...', 3);
     updateLoadingStep(1, 'Validating your information...');
 
     try {
@@ -337,8 +335,6 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
 
     // NO validation for arrival time or flight number - they are OPTIONAL
 
-    setIsSubmitting(true);
-    startLoading('Processing your booking...', 4);
     updateLoadingStep(1, 'Validating your information...');
 
     try {
@@ -460,10 +456,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
 
     if (nationality === 'malawian') {
       setIsSubmitting(true);
-      setShowLoadingOverlay(true);
-      setLoadingMessage('Submitting your booking...');
-      setLoadingStep(0);
-      setShowBookingForm(false);
+      startLoading('Submitting your booking...', 4);
       handleMalawianBooking();
     } else {
       setShowInternationalConfirm(true);
@@ -905,7 +898,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
               <button onClick={() => {
                 setShowInternationalConfirm(false);
                 setIsSubmitting(true);
-                startLoading('Submitting your booking...', nationality === 'malawian' ? 4 : 3);
+                startLoading('Submitting your booking...', 3);
                 handleInternationalBooking();
               }} style={{ flex: 1, padding: '12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Agree & Proceed</button>
             </div>

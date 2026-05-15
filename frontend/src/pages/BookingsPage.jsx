@@ -214,12 +214,16 @@ const BookingsPage = () => {
                               <span>{new Date(item.selectedDate).toLocaleDateString()}</span>
                             </div>
                             <div className="info-item">
-                              <span className="info-icon">⏱️</span>
+                              <span className="info-icon">🗓️</span>
                               <span>{item.numberOfDays} {item.numberOfDays === 1 ? 'Day' : 'Days'}</span>
                             </div>
                             <div className="info-item">
                               <span className="info-icon">👥</span>
                               <span>{item.numberOfPeople} {item.numberOfPeople === 1 ? 'Person' : 'People'}</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-icon">🌍</span>
+                              <span>{booking.nationality === 'malawian' ? 'Malawian' : booking.nationality ? booking.nationality.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'International'}</span>
                             </div>
                             <div className="info-item">
                               <span className="info-icon">💰</span>

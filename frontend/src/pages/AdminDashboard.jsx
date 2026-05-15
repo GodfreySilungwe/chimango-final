@@ -629,9 +629,13 @@ const AdminDashboard = () => {
                 <tr>
                   <th>Booking Code</th>
                   <th>Customer</th>
+                  <th>Email</th>
                   <th>Phone</th>
                   <th>Activity</th>
                   <th>Date</th>
+                  <th>Days</th>
+                  <th>People</th>
+                  <th>Nationality</th>
                   <th>Amount</th>
                   <th>Status</th>
                   <th>Action</th>
@@ -642,9 +646,13 @@ const AdminDashboard = () => {
                   <tr key={booking._id || booking.id}>
                     <td><code>{booking.bookingCode}</code></td>
                     <td>{booking.personalDetails?.fullName || booking.user?.fullName}</td>
+                    <td>{booking.personalDetails?.email || booking.user?.email || '—'}</td>
                     <td>{booking.personalDetails?.phone || booking.user?.phone}</td>
                     <td>{booking.selectedActivities?.[0]?.activity?.name || booking.selectedActivities?.[0]?.activity || 'N/A'}</td>
                     <td>{booking.selectedActivities?.[0]?.selectedDate ? new Date(booking.selectedActivities[0].selectedDate).toLocaleDateString() : 'N/A'}</td>
+                    <td>{booking.selectedActivities?.[0]?.numberOfDays || 1}</td>
+                    <td>{booking.selectedActivities?.[0]?.numberOfPeople || 1}</td>
+                    <td>{booking.nationality === 'malawian' ? 'Malawian' : booking.nationality ? booking.nationality.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'International'}</td>
                     <td>${booking.totalPrice}</td>
                     <td><span className={`status-badge ${booking.status}`}>{booking.status}</span></td>
                     <td>
