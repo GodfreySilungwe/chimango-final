@@ -234,11 +234,11 @@ const BookingConfirmation = () => {
               <div className="detail-item">
                 <span className="detail-label">Customer Type</span>
                 <span className="detail-value">
-                  {booking.nationality === 'international'
-                    ? '🌍 International'
-                    : booking.nationality === 'malawian'
-                      ? '🇲🇼 Malawian'
-                      : booking.nationality || 'Unknown'}
+                  {booking.nationality === 'malawian'
+                    ? '🇲🇼 Malawian'
+                    : booking.nationality
+                      ? `🌍 ${booking.nationality.charAt(0).toUpperCase() + booking.nationality.slice(1).replace('-', ' ')}`
+                      : 'Not specified'}
                 </span>
               </div>
               <div className="detail-item">

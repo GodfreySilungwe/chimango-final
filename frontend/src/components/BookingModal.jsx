@@ -1,237 +1,856 @@
-import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
 import { API_URL } from '../config';
+import ImageGalleryModal from './ImageGalleryModal';
 
-const BookingModal = ({ activity, onClose }) => {
-  const { user, token } = useAuth();
+const ActivityDetailModal = ({ activity, onClose, user }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState('details');
   const [numberOfDays, setNumberOfDays] = useState(1);
   const [numberOfPeople, setNumberOfPeople] = useState(1);
   const [selectedDate, setSelectedDate] = useState('');
-  const [isBooking, setIsBooking] = useState(false);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [nationality, setNationality] = useState('');
+  const [airportPickup, setAirportPickup] = useState(false);
+  const [flightNumber, setFlightNumber] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showInternationalConfirm, setShowInternationalConfirm] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [showFullGallery, setShowFullGallery] = useState(false);
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [personalDetails, setPersonalDetails] = useState({
+    fullName: user?.fullName || '',
+    email: user?.email || '',
+    phone: '',
+    passportNumber: '',
+    emergencyContact: '',
+    specialRequests: ''
+  });
 
-  const totalPrice = (activity.pricePerDay * numberOfDays) + (activity.pricePerPerson * numberOfPeople);
+  const allImages = activity.images && activity.images.length > 0 
+    ? [activity.mainImage, ...activity.images] 
+    : [activity.mainImage];
 
-  const handleBooking = async () => {
-    if (!user) {
-      onClose();
-      window.location.href = '/register';
+  useEffect(() => {
+    const pendingBooking = sessionStorage.getItem('_pendingBookingToRestore');
+    if (pendingBooking) {
+      try {
+        const booking = JSON.parse(pendingBooking);
+        setNumberOfDays(booking.numberOfDays || 1);
+        setNumberOfPeople(booking.numberOfPeople || 1);
+        setSelectedDate(booking.selectedDate || '');
+        setNationality(booking.nationality || 'international');
+        setAirportPickup(booking.airportPickup || false);
+        setFlightNumber(booking.flightNumber || '');
+        setArrivalTime(booking.arrivalTime || '');
+        setShowBookingForm(true);
+        setActiveTab('trip');
+        
+        if (booking.personalDetails) {
+          setPersonalDetails(prev => ({
+            ...prev,
+            ...booking.personalDetails
+          }));
+        }
+        
+        sessionStorage.removeItem('_pendingBookingToRestore');
+      } catch (e) {
+        console.error('Failed to restore pending booking:', e);
+      }
+    }
+  }, []);
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+  };
+
+  const totalPrice = (activity.pricePerDay * numberOfDays) + 
+                     (activity.pricePerPerson * numberOfPeople) + 
+                     (airportPickup ? 7.50 : 0);
+
+  const clearFormError = () => {
+    if (formError) setFormError('');
+  };
+
+  const startLoading = (message, steps = 1) => {
+    setLoadingMessage(message);
+    setLoadingStep(0);
+    setShowLoadingOverlay(true);
+    setShowBookingForm(false);
+    setShowInternationalConfirm(false);
+  };
+
+  const updateLoadingStep = (step, message) => {
+    setLoadingStep(step);
+    setLoadingMessage(message);
+  };
+
+  const stopLoading = () => {
+    setShowLoadingOverlay(false);
+    setLoadingMessage('');
+    setLoadingStep(0);
+    setIsSubmitting(false);
+  };
+
+  const validateTripStep = () => {
+    if (!selectedDate) {
+      return 'Please select a travel date before continuing.';
+    }
+    if (!numberOfDays || numberOfDays < 1) {
+      return 'Number of days must be at least 1.';
+    }
+    if (!numberOfPeople || numberOfPeople < activity.minPeople) {
+      return `Number of people must be at least ${activity.minPeople}.`;
+    }
+    // Flight number and arrival time are OPTIONAL - NO validation
+    return null;
+  };
+
+  const validatePersonalStep = () => {
+    if (!personalDetails.fullName.trim()) {
+      return 'Full name is required.';
+    }
+    if (!personalDetails.email.trim()) {
+      return 'Email address is required.';
+    }
+    if (!/\S+@\S+\.\S+/.test(personalDetails.email)) {
+      return 'Please enter a valid email address.';
+    }
+    if (!nationality) {
+      return 'Please select your nationality.';
+    }
+    if (nationality === 'malawian' && !personalDetails.phone.trim()) {
+      return 'Phone number is required for Malawian customers.';
+    }
+    if (nationality !== 'malawian' && !personalDetails.passportNumber.trim()) {
+      return 'Passport number is required for international customers.';
+    }
+    return null;
+  };
+
+  const handleTripContinue = () => {
+    const error = validateTripStep();
+    if (error) {
+      setFormError(error);
       return;
     }
+    clearFormError();
+    setActiveTab('personal');
+  };
 
+  const handlePersonalContinue = () => {
+    const error = validatePersonalStep();
+    if (error) {
+      setFormError(error);
+      return;
+    }
+    clearFormError();
+    setActiveTab('summary');
+  };
+
+  const handleBookClick = () => {
+    setFormError('');
+    setShowBookingForm(true);
+    setActiveTab('trip');
+  };
+
+  const handleInternationalBooking = async () => {
     if (!selectedDate) {
       alert('Please select a date');
       return;
     }
 
-    setIsBooking(true);
-    
+    if (!personalDetails.fullName || !personalDetails.email) {
+      alert('Please fill in Full Name and Email');
+      return;
+    }
+
+    if (!personalDetails.passportNumber) {
+      alert('Passport number is required for international customers');
+      return;
+    }
+
+    // NO validation for arrival time or flight number - they are OPTIONAL
+
+    setIsSubmitting(true);
+    startLoading('Processing your international booking...', 3);
+    updateLoadingStep(1, 'Validating your information...');
+
     try {
+      const newBookingCode = 'CHM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+      updateLoadingStep(2, 'Creating your booking...');
+
+      const bookingData = {
+        userId: user.id,
+        selectedActivities: [{
+          activity: {
+            id: activity._id || activity.id,
+            name: activity.name,
+            location: activity.location,
+            category: activity.category
+          },
+          numberOfDays,
+          numberOfPeople,
+          totalPrice: totalPrice,
+          selectedDate: selectedDate
+        }],
+        totalPrice: totalPrice,
+        specialRequests: personalDetails.specialRequests,
+        airportPickup,
+        flightNumber: flightNumber || '',
+        arrivalTime: arrivalTime || '',
+        personalDetails: {
+          fullName: personalDetails.fullName,
+          email: personalDetails.email,
+          phone: personalDetails.phone,
+          passportNumber: personalDetails.passportNumber,
+          emergencyContact: personalDetails.emergencyContact
+        },
+        bookingCode: newBookingCode,
+        nationality: nationality,
+        paymentMethod: 'pay_on_arrival'
+      };
+
       const response = await fetch(`${API_URL}/api/custom-bookings`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          userId: user.id,
-          selectedActivities: [{
-            activity: {
-              id: activity._id || activity.id,
-              name: activity.name,
-              location: activity.location,
-              category: activity.category
-            },
-            numberOfDays,
-            numberOfPeople,
-            totalPrice: (activity.pricePerDay * numberOfDays) + (activity.pricePerPerson * numberOfPeople),
-            selectedDate
-          }],
-          totalPrice,
-          specialRequests: ''
-        })
+        body: JSON.stringify(bookingData)
       });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Server returned invalid response');
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || `Server error: ${response.status}`);
+      }
+
+      updateLoadingStep(3, 'Finalizing your booking...');
+
+      const createdBooking = data.booking || data;
+      sessionStorage.setItem('lastBooking', JSON.stringify(createdBooking));
       
-      setBookingSuccess(true);
       setTimeout(() => {
-        onClose();
-        window.location.href = '/bookings';
-      }, 2000);
+        window.location.href = `/booking-confirmation?bookingCode=${newBookingCode}`;
+      }, 1000);
+      
     } catch (error) {
       console.error('Booking error:', error);
-      alert('Booking failed. Please try again.');
-    } finally {
-      setIsBooking(false);
+      stopLoading();
+      alert('Failed to create booking. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMalawianBooking = async () => {
+    if (!selectedDate) {
+      alert('Please select a date');
+      return;
+    }
+
+    if (!personalDetails.fullName || !personalDetails.email) {
+      alert('Please fill in Full Name and Email');
+      return;
+    }
+
+    if (!personalDetails.phone) {
+      alert('Phone number is required for Malawian customers');
+      return;
+    }
+
+    // NO validation for arrival time or flight number - they are OPTIONAL
+
+    setIsSubmitting(true);
+    startLoading('Processing your booking...', 4);
+    updateLoadingStep(1, 'Validating your information...');
+
+    try {
+      const newBookingCode = 'CHM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+      updateLoadingStep(2, 'Creating your booking...');
+
+      const bookingData = {
+        userId: user.id,
+        selectedActivities: [{
+          activity: {
+            id: activity._id || activity.id,
+            name: activity.name,
+            location: activity.location,
+            category: activity.category
+          },
+          numberOfDays,
+          numberOfPeople,
+          totalPrice: totalPrice,
+          selectedDate: selectedDate
+        }],
+        totalPrice: totalPrice,
+        specialRequests: personalDetails.specialRequests,
+        airportPickup,
+        flightNumber: flightNumber || '',
+        arrivalTime: arrivalTime || '',
+        personalDetails: {
+          fullName: personalDetails.fullName,
+          email: personalDetails.email,
+          phone: personalDetails.phone,
+          passportNumber: personalDetails.passportNumber,
+          emergencyContact: personalDetails.emergencyContact
+        },
+        bookingCode: newBookingCode,
+        nationality: nationality,
+        paymentMethod: null
+      };
+
+      const response = await fetch(`${API_URL}/api/custom-bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bookingData)
+      });
+
+      let json;
+      try {
+        json = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Server returned invalid response');
+      }
+
+      if (!response.ok) {
+        throw new Error(json.message || `Server error: ${response.status}`);
+      }
+
+      updateLoadingStep(3, 'Preparing payment...');
+
+      const paymentData = {
+        bookingCode: newBookingCode,
+        totalPrice: totalPrice,
+        personalDetails: {
+          fullName: personalDetails.fullName,
+          phone: personalDetails.phone,
+          email: personalDetails.email
+        },
+        activityName: activity.name,
+        selectedDate: selectedDate,
+        booking: json.booking || json
+      };
+      
+      sessionStorage.setItem('pendingPayment', JSON.stringify(paymentData));
+      
+      updateLoadingStep(4, 'Redirecting to payment...');
+      
+      setTimeout(() => {
+        window.location.href = `/payment?bookingCode=${newBookingCode}`;
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Booking error:', error);
+      stopLoading();
+      alert('Failed to create booking. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitBooking = () => {
+    const tripError = validateTripStep();
+    const personalError = validatePersonalStep();
+
+    if (tripError || personalError) {
+      setFormError(tripError || personalError);
+      setActiveTab(tripError ? 'trip' : 'personal');
+      return;
+    }
+
+    if (!user || !user.id) {
+      const pendingBookingData = {
+        activityId: activity._id,
+        activityName: activity.name,
+        numberOfDays,
+        numberOfPeople,
+        selectedDate,
+        airportPickup,
+        flightNumber,
+        arrivalTime,
+        nationality,
+        personalDetails,
+        totalPrice
+      };
+      sessionStorage.setItem('pendingBooking', JSON.stringify(pendingBookingData));
+      window.location.href = `/register?redirect=booking`;
+      return;
+    }
+
+    if (nationality === 'malawian') {
+      setIsSubmitting(true);
+      setShowLoadingOverlay(true);
+      setLoadingMessage('Submitting your booking...');
+      setLoadingStep(0);
+      setShowBookingForm(false);
+      handleMalawianBooking();
+    } else {
+      setShowInternationalConfirm(true);
     }
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        animation: 'fadeIn 0.3s ease'
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          maxWidth: '500px',
-          width: '90%',
-          padding: '2rem',
-          animation: 'slideUp 0.3s ease'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <style>
-          {`
-            @keyframes fadeIn {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-            @keyframes slideUp {
-              from {
-                opacity: 0;
-                transform: translateY(50px);
-              }
-              to {
-                opacity: 1;
-                transform: translateY(0);
-              }
-            }
-          `}
-        </style>
-        
-        
-        {bookingSuccess ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div style={{ fontSize: '48px', marginBottom: '1rem' }}>✓</div>
-            <h2>Booking Confirmed!</h2>
-            <p>Redirecting to your bookings...</p>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.95)',
+      zIndex: 2000,
+      overflowY: 'auto',
+    }} onClick={onClose}>
+      
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}
+      </style>
+
+      {/* Loading Overlay */}
+      {showLoadingOverlay && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            textAlign: 'center',
+            backgroundColor: 'white',
+            padding: '2rem 2rem',
+            borderRadius: '16px',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <div style={{
+              width: '70px',
+              height: '70px',
+              margin: '0 auto 1.5rem',
+              position: 'relative'
+            }}>
+              <div style={{
+                width: '70px',
+                height: '70px',
+                border: '4px solid #f0f0f0',
+                borderTop: '4px solid #e67e22',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite'
+              }}></div>
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                fontSize: '24px'
+              }}>
+                {loadingStep === 1 && '✓'}
+                {loadingStep === 2 && '✓'}
+                {loadingStep === 3 && '✓'}
+                {loadingStep === 4 && '✓'}
+              </div>
+            </div>
+            
+            <h2 style={{ color: '#2c3e50', marginBottom: '0.5rem', fontSize: '1.5rem' }}>
+              {loadingStep === 0 && 'Processing Your Booking'}
+              {loadingStep === 1 && 'Validating Information'}
+              {loadingStep === 2 && 'Creating Booking'}
+              {loadingStep === 3 && 'Preparing Payment'}
+              {loadingStep === 4 && 'Almost Done'}
+            </h2>
+            
+            <p style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: '1.5rem' }}>
+              {loadingMessage || 'Please wait while we process your request...'}
+            </p>
+            
+            {loadingStep > 0 && (
+              <div style={{
+                width: '100%',
+                height: '6px',
+                backgroundColor: '#f0f0f0',
+                borderRadius: '3px',
+                overflow: 'hidden',
+                marginTop: '1rem'
+              }}>
+                <div style={{
+                  width: `${(loadingStep / (nationality === 'international' ? 3 : 4)) * 100}%`,
+                  height: '100%',
+                  backgroundColor: '#e67e22',
+                  transition: 'width 0.3s ease',
+                  borderRadius: '3px'
+                }} />
+              </div>
+            )}
+            
+            <p style={{ color: '#95a5a6', fontSize: '12px', marginTop: '1rem' }}>
+              Please do not close this window
+            </p>
           </div>
-        ) : (
-          <>
-            <h2 style={{ margin: '0 0 0.5rem 0', color: '#2c3e50' }}>Book Activity</h2>
-            <h3 style={{ color: '#e67e22', marginBottom: '1.5rem' }}>{activity.name}</h3>
-            
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Number of Days:
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="7"
-                value={numberOfDays}
-                onChange={(e) => setNumberOfDays(parseInt(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
-              <small>MK {activity.pricePerDay.toLocaleString()} per day</small>
+        </div>
+      )}
+
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        backgroundColor: 'white',
+        minHeight: '100vh',
+        position: 'relative',
+      }} onClick={(e) => e.stopPropagation()}>
+        
+        <button onClick={onClose} style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          backgroundColor: '#e74c3c',
+          color: 'white',
+          border: 'none',
+          borderRadius: '50%',
+          width: '40px',
+          height: '40px',
+          fontSize: '20px',
+          cursor: 'pointer',
+          zIndex: 10,
+        }}>✕</button>
+
+        {/* Image Gallery */}
+        <div style={{ position: 'relative', height: '450px', backgroundColor: '#1a1a2e' }}>
+          <img 
+            src={allImages[currentImageIndex]} 
+            alt={activity.name}
+            onClick={() => setShowFullGallery(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              cursor: 'pointer'
+            }}
+            onError={(e) => { e.target.src = 'https://via.placeholder.com/1200x450?text=Image+Not+Found'; }}
+          />
+          
+          {allImages.length > 1 && (
+            <>
+              <button onClick={prevImage} style={{
+                position: 'absolute',
+                left: '20px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '44px',
+                height: '44px',
+                fontSize: '24px',
+                cursor: 'pointer',
+              }}>❮</button>
+              <button onClick={nextImage} style={{
+                position: 'absolute',
+                right: '20px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '44px',
+                height: '44px',
+                fontSize: '24px',
+                cursor: 'pointer',
+              }}>❯</button>
+            </>
+          )}
+          
+          <div style={{
+            position: 'absolute',
+            bottom: '20px',
+            right: '20px',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            color: 'white',
+            padding: '5px 12px',
+            borderRadius: '20px',
+            fontSize: '14px'
+          }}>
+            {currentImageIndex + 1} / {allImages.length}
+          </div>
+        </div>
+
+        {/* Activity Info */}
+        <div style={{ padding: '25px 30px 0' }}>
+          <h1 style={{ color: '#2c3e50', marginBottom: '5px' }}>{activity.name}</h1>
+          <p style={{ color: '#e74c3c', fontSize: '16px' }}>📍 {activity.location} | {activity.region}</p>
+          
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', margin: '20px 0' }}>
+            <span style={{ backgroundColor: '#f0f0f0', padding: '5px 15px', borderRadius: '20px', fontSize: '14px' }}>⏱️ {activity.durationHours} hours</span>
+            <span style={{ backgroundColor: '#f0f0f0', padding: '5px 15px', borderRadius: '20px', fontSize: '14px' }}>👥 Min {activity.minPeople} people</span>
+            <span style={{ backgroundColor: '#f0f0f0', padding: '5px 15px', borderRadius: '20px', fontSize: '14px' }}>🎯 Difficulty: {activity.difficulty}</span>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ padding: '0 30px' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid #ddd', marginBottom: '20px' }}>
+            <button onClick={() => setActiveTab('details')} style={{ padding: '12px 24px', background: 'transparent', border: 'none', borderBottom: activeTab === 'details' ? '3px solid #e67e22' : 'none', cursor: 'pointer', fontWeight: activeTab === 'details' ? 'bold' : 'normal', color: activeTab === 'details' ? '#e67e22' : '#666' }}>📖 Description</button>
+            <button onClick={() => setActiveTab('whatToBring')} style={{ padding: '12px 24px', background: 'transparent', border: 'none', borderBottom: activeTab === 'whatToBring' ? '3px solid #e67e22' : 'none', cursor: 'pointer', fontWeight: activeTab === 'whatToBring' ? 'bold' : 'normal', color: activeTab === 'whatToBring' ? '#e67e22' : '#666' }}>🎒 What to Bring</button>
+            <button onClick={() => setActiveTab('meetingPoint')} style={{ padding: '12px 24px', background: 'transparent', border: 'none', borderBottom: activeTab === 'meetingPoint' ? '3px solid #e67e22' : 'none', cursor: 'pointer', fontWeight: activeTab === 'meetingPoint' ? 'bold' : 'normal', color: activeTab === 'meetingPoint' ? '#e67e22' : '#666' }}>📍 Meeting Point</button>
+          </div>
+
+          {activeTab === 'details' && <div style={{ lineHeight: '1.8', color: '#555', marginBottom: '30px' }}><p>{activity.description}</p></div>}
+          {activeTab === 'whatToBring' && <div style={{ marginBottom: '30px' }}><ul style={{ marginLeft: '20px', lineHeight: '1.8', color: '#555' }}>{activity.whatToBring?.map((item, idx) => <li key={idx}>{item}</li>)}</ul></div>}
+          {activeTab === 'meetingPoint' && <div style={{ marginBottom: '30px', lineHeight: '1.8', color: '#555' }}><p>{activity.meetingPoint || 'Information provided after booking'}</p></div>}
+        </div>
+
+        {/* Price and Book Button */}
+        <div style={{ padding: '20px 30px', backgroundColor: '#f8f9fa', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+          <div>
+            <span style={{ fontSize: '14px', color: '#666' }}>Price</span>
+            <div><span style={{ fontSize: '32px', fontWeight: 'bold', color: '#e67e22' }}>USD {activity.pricePerDay}</span><span style={{ fontSize: '14px', color: '#666' }}> / day</span></div>
+            <div><span style={{ fontSize: '14px', color: '#666' }}>+ USD {activity.pricePerPerson} per person</span></div>
+          </div>
+          <button onClick={handleBookClick} style={{ backgroundColor: '#e67e22', color: 'white', border: 'none', padding: '14px 40px', borderRadius: '50px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>Book Now</button>
+        </div>
+
+        {/* Booking Form Modal */}
+        {showBookingForm && !showLoadingOverlay && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2100, overflowY: 'auto' }} onClick={() => setShowBookingForm(false)}>
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '600px', width: '90%', maxHeight: '85vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+              
+              <div style={{ background: 'linear-gradient(135deg, #2c3e50, #3498db)', color: 'white', padding: '20px', textAlign: 'center' }}>
+                <h3 style={{ margin: 0 }}>Complete Your Booking</h3>
+                <p style={{ margin: '5px 0 0', opacity: 0.9, fontSize: '14px' }}>{activity.name}</p>
+              </div>
+
+              <div style={{ display: 'flex', borderBottom: '1px solid #ddd' }}>
+                <button onClick={() => setActiveTab('trip')} style={{ flex: 1, padding: '15px', background: activeTab === 'trip' ? '#fff' : '#f8f9fa', border: 'none', borderBottom: activeTab === 'trip' ? '3px solid #e67e22' : 'none', cursor: 'pointer', fontWeight: activeTab === 'trip' ? 'bold' : 'normal', color: activeTab === 'trip' ? '#e67e22' : '#666' }}>📋 Trip Details</button>
+                <button onClick={() => setActiveTab('personal')} style={{ flex: 1, padding: '15px', background: activeTab === 'personal' ? '#fff' : '#f8f9fa', border: 'none', borderBottom: activeTab === 'personal' ? '3px solid #e67e22' : 'none', cursor: 'pointer', fontWeight: activeTab === 'personal' ? 'bold' : 'normal', color: activeTab === 'personal' ? '#e67e22' : '#666' }}>👤 Personal Info</button>
+                <button onClick={() => setActiveTab('summary')} style={{ flex: 1, padding: '15px', background: activeTab === 'summary' ? '#fff' : '#f8f9fa', border: 'none', borderBottom: activeTab === 'summary' ? '3px solid #e67e22' : 'none', cursor: 'pointer', fontWeight: activeTab === 'summary' ? 'bold' : 'normal', color: activeTab === 'summary' ? '#e67e22' : '#666' }}>💳 Summary</button>
+              </div>
+
+              <div style={{ padding: '25px' }}>
+                {formError && (
+                  <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fdecea', color: '#611a15', borderRadius: '8px', border: '1px solid #f5c6cb' }}>
+                    {formError}
+                  </div>
+                )}
+                {activeTab === 'trip' && (
+                  <div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of Days</label><input type="number" min="1" max="7" value={numberOfDays} onChange={(e) => { setNumberOfDays(parseInt(e.target.value)); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of People</label><input type="number" min={activity.minPeople} max={activity.maxPeople} value={numberOfPeople} onChange={(e) => { setNumberOfPeople(parseInt(e.target.value)); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Travel Date</label><input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); clearFormError(); }} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" checked={airportPickup} onChange={(e) => { setAirportPickup(e.target.checked); clearFormError(); }} /><span>✈️ Add Airport Pickup Service <strong>(USD 7.50 extra)</strong></span></label></div>
+                    {airportPickup && (
+                      <div style={{ backgroundColor: '#f0f7ff', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                        <div style={{ marginBottom: '10px' }}>
+                          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Flight Number <span style={{ color: '#999', fontWeight: 'normal' }}>(Optional)</span></label>
+                          <input type="text" value={flightNumber} onChange={(e) => { setFlightNumber(e.target.value); clearFormError(); }} placeholder="e.g., ET 1234" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} />
+                          <small style={{ color: '#999', fontSize: '11px' }}>You can add this later</small>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Arrival Time <span style={{ color: '#999', fontWeight: 'normal' }}>(Optional)</span></label>
+                          <input type="time" value={arrivalTime} onChange={(e) => { setArrivalTime(e.target.value); clearFormError(); }} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} />
+                          <small style={{ color: '#999', fontSize: '11px' }}>You can add this later</small>
+                        </div>
+                      </div>
+                    )}
+                    <button onClick={handleTripContinue} style={{ width: '100%', padding: '14px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>Continue →</button>
+                  </div>
+                )}
+
+                {activeTab === 'personal' && (
+                  <div>
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Nationality *</label>
+                      <select value={nationality} onChange={(e) => { setNationality(e.target.value); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }}>
+                        <option value="">Select your nationality</option>
+                        <option value="malawian">🇲🇼 Malawian</option>
+                        <option value="american">🇺🇸 American</option>
+                        <option value="british">🇬🇧 British</option>
+                        <option value="canadian">🇨🇦 Canadian</option>
+                        <option value="australian">🇦🇺 Australian</option>
+                        <option value="german">🇩🇪 German</option>
+                        <option value="french">🇫🇷 French</option>
+                        <option value="italian">🇮🇹 Italian</option>
+                        <option value="spanish">🇪🇸 Spanish</option>
+                        <option value="dutch">🇳🇱 Dutch</option>
+                        <option value="swedish">🇸🇪 Swedish</option>
+                        <option value="norwegian">🇳🇴 Norwegian</option>
+                        <option value="danish">🇩🇰 Danish</option>
+                        <option value="japanese">🇯🇵 Japanese</option>
+                        <option value="chinese">🇨🇳 Chinese</option>
+                        <option value="indian">🇮🇳 Indian</option>
+                        <option value="south-korean">🇰🇷 South Korean</option>
+                        <option value="brazilian">🇧🇷 Brazilian</option>
+                        <option value="mexican">🇲🇽 Mexican</option>
+                        <option value="other">🌍 Other (please specify in special requests)</option>
+                      </select>
+                    </div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Full Name *</label><input type="text" value={personalDetails.fullName} onChange={(e) => { setPersonalDetails({...personalDetails, fullName: e.target.value}); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Email Address *</label><input type="email" value={personalDetails.email} onChange={(e) => { setPersonalDetails({...personalDetails, email: e.target.value}); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    {nationality === 'malawian' && <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Phone Number *</label><input type="tel" value={personalDetails.phone} onChange={(e) => { setPersonalDetails({...personalDetails, phone: e.target.value}); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>}
+                    {nationality === 'international' && (
+                      <>
+                        <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>WhatsApp / International Phone</label><input type="tel" value={personalDetails.phone} onChange={(e) => { setPersonalDetails({...personalDetails, phone: e.target.value}); clearFormError(); }} placeholder="Include country code" style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                        <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Passport Number *</label><input type="text" value={personalDetails.passportNumber} onChange={(e) => { setPersonalDetails({...personalDetails, passportNumber: e.target.value}); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                      </>
+                    )}
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px' }}>Emergency Contact (Optional)</label><input type="text" value={personalDetails.emergencyContact} onChange={(e) => setPersonalDetails({...personalDetails, emergencyContact: e.target.value})} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px' }}>Special Requests (Optional)</label><textarea value={personalDetails.specialRequests} onChange={(e) => setPersonalDetails({...personalDetails, specialRequests: e.target.value})} rows="3" style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} placeholder="Any special requirements..." /></div>
+                    <div style={{ display: 'flex', gap: '10px' }}><button onClick={() => { clearFormError(); setActiveTab('trip'); }} style={{ flex: 1, padding: '14px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>← Back</button><button onClick={handlePersonalContinue} style={{ flex: 1, padding: '14px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Continue →</button></div>
+                  </div>
+                )}
+
+                {activeTab === 'summary' && (
+                  <div>
+                    <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '12px', marginBottom: '20px', textAlign: 'center' }}>
+                      <strong style={{ fontSize: '14px', color: '#666' }}>Total Amount</strong>
+                      <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#e67e22' }}>USD {totalPrice.toLocaleString()}</div>
+                      {airportPickup && <small>+ USD 7.50 for airport pickup</small>}
+                    </div>
+                    
+                    <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#e8f4fd', borderRadius: '8px' }}>
+                      <h4 style={{ margin: '0 0 10px 0' }}>📌 Booking Summary</h4>
+                      <p><strong>Activity:</strong> {activity.name}</p>
+                      <p><strong>Travel Date:</strong> {selectedDate ? new Date(selectedDate).toLocaleDateString() : 'Not selected'}</p>
+                      <p><strong>Duration:</strong> {numberOfDays} day(s)</p>
+                      <p><strong>Travelers:</strong> {numberOfPeople} person(s)</p>
+                      <p><strong>Customer Type:</strong> {nationality === 'malawian' ? '🇲🇼 Malawian' : `🌍 ${nationality.charAt(0).toUpperCase() + nationality.slice(1).replace('-', ' ')}`}</p>
+                      {airportPickup && <p><strong>Airport Pickup:</strong> Yes (Flight: {flightNumber || 'TBD'})</p>}
+                    </div>
+                    
+                    {nationality !== 'malawian' && (
+                      <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
+                        <p style={{ margin: 0, color: '#856404' }}>💰 50% upfront payment required on arrival: <strong>USD {Math.round(totalPrice * 0.5)}</strong></p>
+                      </div>
+                    )}
+                    
+                    <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '14px', color: '#666' }}>Total Price:</span>
+                      <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#e67e22' }}>
+                        USD {totalPrice.toLocaleString()}
+                      </div>
+                      {nationality === 'malawian' && (
+                        <div style={{ fontSize: '16px', color: '#2c3e50', marginTop: '5px' }}>
+                          ≈ MWK {(totalPrice * 1800).toLocaleString()}
+                        </div>
+                      )}
+                      {airportPickup && <small>+ USD 7.50 for airport pickup</small>}
+                      {nationality !== 'malawian' && (
+                        <small style={{ display: 'block', marginTop: '5px' }}>※ 50% upfront payment required on arrival in USD</small>
+                      )}
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button onClick={() => setActiveTab('personal')} style={{ flex: 1, padding: '14px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>← Back</button>
+                      <button 
+                        onClick={handleSubmitBooking}
+                        disabled={isSubmitting}
+                        style={{ 
+                          flex: 1, 
+                          padding: '14px', 
+                          backgroundColor: nationality === 'international' ? '#3498db' : '#2ecc71', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '8px', 
+                          cursor: isSubmitting ? 'not-allowed' : 'pointer', 
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '10px',
+                          opacity: isSubmitting ? 0.7 : 1
+                        }}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              border: '3px solid white',
+                              borderTop: '3px solid transparent',
+                              borderRadius: '50%',
+                              animation: 'spin 0.8s linear infinite'
+                            }} />
+                            <span>Processing...</span>
+                          </>
+                        ) : (
+                          nationality === 'malawian' ? 'PROCEED TO PAYMENT' : 'CONFIRM & PAY ON ARRIVAL'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Number of People:
-              </label>
-              <input
-                type="number"
-                min={activity.minPeople}
-                max={activity.maxPeople}
-                value={numberOfPeople}
-                onChange={(e) => setNumberOfPeople(parseInt(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
-              <small>MK {activity.pricePerPerson.toLocaleString()} per person (min {activity.minPeople})</small>
-            </div>
-            
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Select Date:
-              </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
-            </div>
-            
-            <div style={{ 
-  marginBottom: '1.5rem', 
-  padding: '1rem', 
-  backgroundColor: '#f8f9fa', 
-  borderRadius: '8px',
-  textAlign: 'center'
-}}>
-  <span style={{ fontSize: '14px', color: '#666' }}>Total Price:</span>
-  <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#e67e22' }}>
-    MK {totalPrice.toLocaleString()}
-  </div>
-</div>
-            
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button
-                onClick={onClose}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  backgroundColor: '#95a5a6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBooking}
-                disabled={isBooking}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  backgroundColor: '#2ecc71',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  opacity: isBooking ? 0.7 : 1
-                }}
-              >
-                {isBooking ? 'Booking...' : 'Confirm Booking'}
-              </button>
-            </div>
-          </>
+          </div>
         )}
       </div>
+
+      {/* International Confirmation Modal */}
+      {showInternationalConfirm && !showLoadingOverlay && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2200 }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '450px', width: '90%', padding: '30px', textAlign: 'center' }}>
+            <div style={{ width: '70px', height: '70px', backgroundColor: '#f39c12', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}><span style={{ fontSize: '40px' }}>🌍</span></div>
+            <h2>International Booking</h2>
+            <div style={{ textAlign: 'left', backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+              <h4 style={{ color: '#e67e22', marginBottom: '10px' }}>Payment Terms:</h4>
+              <ul style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.8' }}>
+                <li>💰 <strong>50% upfront payment</strong> required on arrival</li>
+                <li>💵 Payment in <strong>USD only</strong></li>
+                <li>⚖️ Balance payable before activity starts</li>
+                <li>📋 Please bring your passport for verification</li>
+              </ul>
+            </div>
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button onClick={() => setShowInternationalConfirm(false)} style={{ flex: 1, padding: '12px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => {
+                setShowInternationalConfirm(false);
+                setIsSubmitting(true);
+                startLoading('Submitting your booking...', nationality === 'malawian' ? 4 : 3);
+                handleInternationalBooking();
+              }} style={{ flex: 1, padding: '12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Agree & Proceed</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Gallery Modal */}
+      {showFullGallery && (
+        <ImageGalleryModal activity={activity} onClose={() => setShowFullGallery(false)} />
+      )}
     </div>
   );
 };
 
-export default BookingModal;
+export default ActivityDetailModal;

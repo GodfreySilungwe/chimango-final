@@ -81,11 +81,15 @@ const RegisterPage = () => {
       
       // Check if user was trying to book before registering
       const pendingBooking = sessionStorage.getItem('pendingBooking');
+      const pendingCustomJourney = sessionStorage.getItem('pendingCustomJourney');
       const params = new URLSearchParams(window.location.search);
       
       if (pendingBooking && params.get('redirect') === 'booking') {
         // Redirect to activities to restore booking
         window.location.href = '/activities?restoreBooking=true';
+      } else if (pendingCustomJourney && params.get('redirect') === 'custom-booking') {
+        // Redirect to custom bookings to restore journey form
+        window.location.href = '/custom-bookings?restoreJourney=true';
       } else {
         navigate('/');
       }

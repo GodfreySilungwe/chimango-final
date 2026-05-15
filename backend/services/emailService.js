@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-const EMAIL_SENDER = 'goshsolutions26@gmail.com';
+const EMAIL_SENDER = 'goshsolution@gmail.com';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -15,7 +15,7 @@ const sendWelcomeEmail = async (email, name) => {
   const mailOptions = {
     from: EMAIL_SENDER,
     to: email,
-    subject: 'Welcome to Chimango Tourism!',
+    subject: 'Welcome to Chimango Tours!',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
         <div style="text-align: center; background-color: #e67e22; padding: 20px; border-radius: 10px 10px 0 0;">
@@ -57,7 +57,7 @@ const sendPasswordResetEmail = async (email, name, resetToken) => {
   const mailOptions = {
     from: EMAIL_SENDER,
     to: email,
-    subject: 'Password Reset Request - Chimango Tourism',
+    subject: 'Password Reset Request - Chimango Tours',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
         <div style="text-align: center; background-color: #e67e22; padding: 20px; border-radius: 10px 10px 0 0;">

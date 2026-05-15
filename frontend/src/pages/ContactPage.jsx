@@ -13,8 +13,24 @@ const ContactPage = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
+  // WhatsApp number for receiving messages
+  const WHATSAPP_NUMBER = '265995718815';
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const formatWhatsAppMessage = () => {
+    return `*New Contact Form Submission* 🏞️
+    
+*Name:* ${formData.name}
+*Email:* ${formData.email}
+*Subject:* ${formData.subject}
+*Message:* 
+${formData.message}
+
+---
+Sent from Chimango Tour Website`;
   };
 
   const handleSubmit = async (e) => {
@@ -22,24 +38,32 @@ const ContactPage = () => {
     setSubmitting(true);
     setError('');
     
+    // Validate required fields
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      setError('Please fill in all required fields.');
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_URL}/api/contact`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
+      // Format the message for WhatsApp
+      const whatsappMessage = formatWhatsAppMessage();
+      const encodedMessage = encodeURIComponent(whatsappMessage);
       
-      if (response.ok) {
-        setSuccess(true);
-        setFormData({ name: '', email: '', subject: '', message: '' });
-        setTimeout(() => setSuccess(false), 5000);
-      } else {
-        throw new Error('Failed to send');
-      }
+      // Create WhatsApp URL
+      const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+      
+      // Open WhatsApp in a new tab
+      window.open(whatsappUrl, '_blank');
+      
+      // Show success message
+      setSuccess(true);
+      setFormData({ name: '', email: '', subject: '', message: '' });
+      setTimeout(() => setSuccess(false), 5000);
+      
     } catch (err) {
-      setError('Failed to send message. Please try again or call us directly.');
+      console.error('Error opening WhatsApp:', err);
+      setError('Failed to open WhatsApp. Please make sure WhatsApp is installed or try calling us directly.');
     } finally {
       setSubmitting(false);
     }
@@ -122,8 +146,8 @@ const ContactPage = () => {
                 <div className="alert-success">
                   <span className="alert-icon">✓</span>
                   <div>
-                    <strong>Message sent successfully!</strong>
-                    <p>Thank you for reaching out. We'll get back to you soon.</p>
+                    <strong>Message ready to send!</strong>
+                    <p>WhatsApp will open with your message. Just click send to complete.</p>
                   </div>
                 </div>
               )}
@@ -189,9 +213,13 @@ const ContactPage = () => {
                 </div>
 
                 <button type="submit" className="btn-submit" disabled={submitting}>
-                  {submitting ? 'Sending...' : 'Send Message →'}
+                  {submitting ? 'Opening WhatsApp...' : 'Send via WhatsApp →'}
                 </button>
               </form>
+              
+              <div className="whatsapp-note">
+                <p>📱 Messages are sent via WhatsApp. You will be redirected to WhatsApp to complete sending.</p>
+              </div>
             </div>
 
             {/* Right Side - FAQ Section */}

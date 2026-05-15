@@ -22,13 +22,31 @@ const CustomBookingsPage = () => {
     airportPickup: false,
     flightNumber: '',
     arrivalTime: '',
-    nationality: 'international'
+    nationality: ''
   });
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // Check for pending journey data to restore
+    const pendingJourney = sessionStorage.getItem('pendingCustomJourney');
+    const params = new URLSearchParams(window.location.search);
+    
+    if (pendingJourney && params.get('restoreJourney') === 'true') {
+      try {
+        const journeyData = JSON.parse(pendingJourney);
+        setFormData(journeyData);
+        sessionStorage.removeItem('pendingCustomJourney');
+        // Scroll to form
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 500);
+      } catch (e) {
+        console.error('Failed to restore pending journey:', e);
+      }
+    }
+    
     if (user && user.id) {
       fetchBookings();
       setFormData((prev) => ({
@@ -107,11 +125,11 @@ const CustomBookingsPage = () => {
     if (formData.numberOfPeople < 1) {
       errors.push('Number of people must be at least 1');
     }
+    if (!formData.nationality) {
+      errors.push('Please select your nationality');
+    }
     if (formData.nationality === 'malawian' && !formData.phone.trim()) {
       errors.push('Phone number is required for Malawian customers');
-    }
-    if (formData.airportPickup && !formData.arrivalTime.trim()) {
-      errors.push('Arrival time is required when airport pickup is selected');
     }
     if (!formData.budget.trim()) {
       errors.push('Budget is required');
@@ -134,7 +152,7 @@ const CustomBookingsPage = () => {
     
     if (!user?.id) {
       sessionStorage.setItem('pendingCustomJourney', JSON.stringify(formData));
-      navigate('/login?redirect=custom-booking');
+      navigate('/register?redirect=custom-booking');
       return;
     }
 
@@ -211,13 +229,7 @@ const CustomBookingsPage = () => {
       
       sessionStorage.setItem('lastBooking', JSON.stringify(savedBooking));
       
-      setTimeout(() => {
-        navigate(`/booking-confirmation?bookingCode=${savedBooking.bookingCode || newBookingCode}`);
-      }, 1500);
-      
-      setTimeout(() => {
-        fetchBookings();
-      }, 2000);
+      navigate(`/booking-confirmation?bookingCode=${savedBooking.bookingCode || newBookingCode}`);
       
       // Reset form
       setFormData({
@@ -378,7 +390,7 @@ const CustomBookingsPage = () => {
                 />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                Customer Type *
+                Nationality *
                 <select
                   name="nationality"
                   value={formData.nationality}
@@ -386,8 +398,27 @@ const CustomBookingsPage = () => {
                   required
                   style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }}
                 >
-                  <option value="international">🌍 International</option>
-                  <option value="malawian">🇲🇼 Malawian (Local)</option>
+                  <option value="">Select your nationality</option>
+                  <option value="malawian">🇲🇼 Malawian</option>
+                  <option value="american">🇺🇸 American</option>
+                  <option value="british">🇬🇧 British</option>
+                  <option value="canadian">🇨🇦 Canadian</option>
+                  <option value="australian">🇦🇺 Australian</option>
+                  <option value="german">🇩🇪 German</option>
+                  <option value="french">🇫🇷 French</option>
+                  <option value="italian">🇮🇹 Italian</option>
+                  <option value="spanish">🇪🇸 Spanish</option>
+                  <option value="dutch">🇳🇱 Dutch</option>
+                  <option value="swedish">🇸🇪 Swedish</option>
+                  <option value="norwegian">🇳🇴 Norwegian</option>
+                  <option value="danish">🇩🇰 Danish</option>
+                  <option value="japanese">🇯🇵 Japanese</option>
+                  <option value="chinese">🇨🇳 Chinese</option>
+                  <option value="indian">🇮🇳 Indian</option>
+                  <option value="south-korean">🇰🇷 South Korean</option>
+                  <option value="brazilian">🇧🇷 Brazilian</option>
+                  <option value="mexican">🇲🇽 Mexican</option>
+                  <option value="other">🌍 Other (please specify in special requests)</option>
                 </select>
               </label>
             </div>
