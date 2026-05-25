@@ -9,12 +9,14 @@ const HomePage = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [selectedAccommodation, setSelectedAccommodation] = useState('camping');
   const [user, setUser] = useState(null);
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
   const navigate = useNavigate();
 
-  const openActivityModal = (activity) => {
+  const openActivityModal = (activity, accommodation) => {
     setSelectedActivity(activity);
+    setSelectedAccommodation(accommodation || 'camping');
   };
 
   const backgroundImages = [
@@ -340,6 +342,7 @@ const HomePage = () => {
         <ActivityDetailModal
           activity={selectedActivity}
           onClose={() => setSelectedActivity(null)}
+          selectedAccommodation={selectedAccommodation}
           user={user}
         />
       )}

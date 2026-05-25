@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { API_URL } from '../config';
 import ImageGalleryModal from './ImageGalleryModal';
 
-const ActivityDetailModal = ({ activity, onClose, user }) => {
+const ActivityDetailModal = ({ activity, onClose, user, selectedAccommodation }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('details');
   const [numberOfDays, setNumberOfDays] = useState(1);
@@ -13,7 +13,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
   const [airportPickup, setAirportPickup] = useState(false);
   const [flightNumber, setFlightNumber] = useState('');
   const [arrivalTime, setArrivalTime] = useState('');
+  const [accommodation, setAccommodation] = useState(selectedAccommodation || 'camping');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (activity?.hasAccommodation === false) {
+      setAccommodation('none');
+    } else if (selectedAccommodation) {
+      setAccommodation(selectedAccommodation);
+    }
+  }, [selectedAccommodation, activity]);
   const [showInternationalConfirm, setShowInternationalConfirm] = useState(false);
   const [formError, setFormError] = useState('');
   const [showFullGallery, setShowFullGallery] = useState(false);
@@ -72,9 +81,29 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
     setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
   };
 
-  const totalPrice = (activity.pricePerDay * numberOfDays) + 
-                     (activity.pricePerPerson * numberOfPeople) + 
-                     (airportPickup ? 7.50 : 0);
+  const hasAccommodation = activity.hasAccommodation !== false;
+  const accommodationRates = activity.accommodationRates || {
+    camping: activity.campingRate || 175,
+    rooms: activity.roomsRate || 210,
+    charets: activity.charetsRate || 235
+  };
+
+  const accommodationLabels = {
+    camping: 'Camping',
+    rooms: 'Standard Rooms',
+    charets: 'Charets',
+    none: 'No accommodation'
+  };
+
+  const activityBaseRate = activity.pricePerPerson || activity.pricePerDay || 0;
+  const mealsLabel = activity.mealIncluded ? 'Traditional local meals inclusive' : 'Traditional local meals not inclusive';
+
+  const accommodationCostPerPersonPerDay = hasAccommodation ? accommodationRates[accommodation] || 0 : 0;
+  const airportPickupRate = activity.airportPickupRate != null ? activity.airportPickupRate : 0;
+  const displayedPrice = hasAccommodation ? accommodationCostPerPersonPerDay : activityBaseRate;
+  const baseTotal = activityBaseRate * numberOfPeople * numberOfDays;
+  const accommodationTotal = accommodationCostPerPersonPerDay * numberOfPeople * numberOfDays;
+  const totalPrice = baseTotal + accommodationTotal + (airportPickup ? airportPickupRate : 0);
 
   const clearFormError = () => {
     if (formError) setFormError('');
@@ -176,10 +205,20 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         },
         numberOfDays,
         numberOfPeople,
+        activityRate: activityBaseRate,
+        accommodationChoice: hasAccommodation ? accommodation : 'none',
+        accommodationRate: hasAccommodation ? accommodationCostPerPersonPerDay : 0,
+        mealIncluded: activity.mealIncluded,
+        airportPickupRate: airportPickup ? airportPickupRate : 0,
         totalPrice: totalPrice,
         selectedDate: selectedDate
       }],
       totalPrice: totalPrice,
+      activityRate: activityBaseRate,
+      accommodationChoice: hasAccommodation ? accommodation : 'none',
+      accommodationRate: hasAccommodation ? accommodationCostPerPersonPerDay : 0,
+      mealIncluded: activity.mealIncluded,
+      airportPickupRate: airportPickup ? airportPickupRate : 0,
       specialRequests: personalDetails.specialRequests,
       airportPickup,
       flightNumber: flightNumber,
@@ -259,10 +298,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
           },
           numberOfDays,
           numberOfPeople,
+          accommodationChoice: accommodation,
+          accommodationRate: accommodationCostPerPersonPerDay,
+          airportPickupRate: airportPickup ? airportPickupRate : 0,
           totalPrice: totalPrice,
           selectedDate: selectedDate
         }],
         totalPrice: totalPrice,
+        accommodationChoice: accommodation,
+        accommodationRate: accommodationCostPerPersonPerDay,
+        airportPickupRate: airportPickup ? airportPickupRate : 0,
         specialRequests: personalDetails.specialRequests,
         airportPickup,
         flightNumber: flightNumber,
@@ -353,10 +398,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
           },
           numberOfDays,
           numberOfPeople,
+          accommodationChoice: accommodation,
+          accommodationRate: accommodationCostPerPersonPerDay,
+          airportPickupRate: airportPickup ? airportPickupRate : 0,
           totalPrice: totalPrice,
           selectedDate: selectedDate
         }],
         totalPrice: totalPrice,
+        accommodationChoice: accommodation,
+        accommodationRate: accommodationCostPerPersonPerDay,
+        airportPickupRate: airportPickup ? airportPickupRate : 0,
         specialRequests: personalDetails.specialRequests,
         airportPickup,
         flightNumber: flightNumber,
@@ -441,8 +492,10 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         activityName: activity.name,
         numberOfDays,
         numberOfPeople,
+        accommodation,
         selectedDate,
         airportPickup,
+        airportPickupRate,
         flightNumber,
         arrivalTime,
         nationality,
@@ -704,8 +757,11 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         <div style={{ padding: '20px 30px', backgroundColor: '#f8f9fa', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <span style={{ fontSize: '14px', color: '#666' }}>Price</span>
-            <div><span style={{ fontSize: '32px', fontWeight: 'bold', color: '#e67e22' }}>USD {activity.pricePerDay}</span><span style={{ fontSize: '14px', color: '#666' }}> / day</span></div>
-            <div><span style={{ fontSize: '14px', color: '#666' }}>+ USD {activity.pricePerPerson} per person</span></div>
+            <div><span style={{ fontSize: '32px', fontWeight: 'bold', color: '#e67e22' }}>USD {displayedPrice}</span><span style={{ fontSize: '14px', color: '#666' }}> per person per day</span></div>
+            {hasAccommodation && (
+              <div style={{ marginTop: '8px' }}><span style={{ fontSize: '14px', color: '#666' }}>Full package rate, including accommodation and meals</span></div>
+            )}
+            <div style={{ marginTop: '8px' }}><span style={{ fontSize: '14px', color: '#666' }}>Traditional local meals: {mealsLabel}</span></div>
           </div>
           <button onClick={handleBookClick} style={{ backgroundColor: '#e67e22', color: 'white', border: 'none', padding: '14px 40px', borderRadius: '50px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>Book Now</button>
         </div>
@@ -736,13 +792,45 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                   <div>
                     <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of Days</label><input type="number" min="1" max="7" value={numberOfDays} onChange={(e) => { setNumberOfDays(parseInt(e.target.value)); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
                     <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of People</label><input type="number" min={activity.minPeople} max={activity.maxPeople} value={numberOfPeople} onChange={(e) => { setNumberOfPeople(parseInt(e.target.value)); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Travel Date</label><input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); clearFormError(); }} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" checked={airportPickup} onChange={(e) => { setAirportPickup(e.target.checked); clearFormError(); }} /><span>✈️ Add Airport Pickup Service <strong>(USD 7.50 extra)</strong></span></label></div>
-                    {airportPickup && (
-                      <div style={{ backgroundColor: '#f0f7ff', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-                        <div style={{ marginBottom: '10px' }}><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Flight Number (Optional)</label><input type="text" value={flightNumber} onChange={(e) => { setFlightNumber(e.target.value); clearFormError(); }} placeholder="e.g., ET 1234" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                        <div><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Arrival Time</label><input type="time" value={arrivalTime} onChange={(e) => { setArrivalTime(e.target.value); clearFormError(); }} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    {hasAccommodation ? (
+                      <div style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Accommodation preference</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                            <input type="radio" name="accommodation" value="camping" checked={accommodation === 'camping'} onChange={(e) => { setAccommodation(e.target.value); clearFormError(); }} />
+                            <span>Camping</span>
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                            <input type="radio" name="accommodation" value="rooms" checked={accommodation === 'rooms'} onChange={(e) => { setAccommodation(e.target.value); clearFormError(); }} />
+                            <span>Standard Rooms</span>
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                            <input type="radio" name="accommodation" value="charets" checked={accommodation === 'charets'} onChange={(e) => { setAccommodation(e.target.value); clearFormError(); }} />
+                            <span>Charets</span>
+                          </label>
+                          <span style={{ color: '#666', fontSize: '13px' }}>Selected rate: USD {accommodationRates[accommodation]} per person per day for the full activity package (accommodation and meals inclusive)</span>
+                        </div>
                       </div>
+                    ) : (
+                      <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#fff' }}>
+                        <p style={{ margin: 0, color: '#333' }}>This activity does not include accommodation.</p>
+                      </div>
+                    )}
+                    <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f8f9fa' }}>
+                      <p style={{ margin: 0, fontWeight: 'bold', marginBottom: '8px' }}>Meals Options</p>
+                      <p style={{ margin: 0, color: '#666' }}>{mealsLabel}</p>
+                    </div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Travel Date</label><input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); clearFormError(); }} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    {activity.airportPickupAvailable !== false && (
+                      <>
+                        <div style={{ marginBottom: '20px' }}><label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" checked={airportPickup} onChange={(e) => { setAirportPickup(e.target.checked); clearFormError(); }} /><span>✈️ Add Airport Pickup Service <strong>(USD {airportPickupRate} extra)</strong></span></label></div>
+                        {airportPickup && (
+                          <div style={{ backgroundColor: '#f0f7ff', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                            <div style={{ marginBottom: '10px' }}><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Flight Number (Optional)</label><input type="text" value={flightNumber} onChange={(e) => { setFlightNumber(e.target.value); clearFormError(); }} placeholder="e.g., ET 1234" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                            <div><label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Arrival Time</label><input type="time" value={arrivalTime} onChange={(e) => { setArrivalTime(e.target.value); clearFormError(); }} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                          </div>
+                        )}
+                      </>
                     )}
                     <button onClick={handleTripContinue} style={{ width: '100%', padding: '14px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>Continue →</button>
                   </div>
@@ -796,7 +884,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                     <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '12px', marginBottom: '20px', textAlign: 'center' }}>
                       <strong style={{ fontSize: '14px', color: '#666' }}>Total Amount</strong>
                       <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#e67e22' }}>USD {totalPrice.toLocaleString()}</div>
-                      {airportPickup && <small>+ USD 7.50 for airport pickup</small>}
+                      {airportPickup && <small>+ USD {airportPickupRate} for airport pickup</small>}
                     </div>
                     
                     <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#e8f4fd', borderRadius: '8px' }}>
@@ -805,6 +893,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                       <p><strong>Travel Date:</strong> {selectedDate ? new Date(selectedDate).toLocaleDateString() : 'Not selected'}</p>
                       <p><strong>Duration:</strong> {numberOfDays} day(s)</p>
                       <p><strong>Travelers:</strong> {numberOfPeople} person(s)</p>
+                      {hasAccommodation ? (
+                        <>
+                          <p><strong>Package Rate:</strong> USD {accommodationCostPerPersonPerDay} per person per day</p>
+                          <p><strong>Accommodation:</strong> {accommodationLabels[accommodation]}</p>
+                          <p style={{ marginTop: '4px', marginBottom: '0', color: '#666' }}><small>Rate shown is the full activity package per person per day, including accommodation and meals.</small></p>
+                        </>
+                      ) : (
+                        <p><strong>Activity Rate:</strong> USD {activityBaseRate} per person per day</p>
+                      )}
+                      <p><strong>Traditional local meals:</strong> {mealsLabel}</p>
                       <p><strong>Customer Type:</strong> {nationality === 'malawian' ? '🇲🇼 Malawian' : `🌍 ${nationality.charAt(0).toUpperCase() + nationality.slice(1).replace('-', ' ')}`}</p>
                       {airportPickup && <p><strong>Airport Pickup:</strong> Yes (Flight: {flightNumber || 'TBD'})</p>}
                     </div>
@@ -826,7 +924,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                           ≈ MWK {(totalPrice * 1800).toLocaleString()}
                         </div>
                       )}
-                      {airportPickup && <small>+ USD 7.50 for airport pickup</small>}
+                      {airportPickup && <small>+ USD {airportPickupRate} for airport pickup</small>}
                       {nationality !== 'malawian' && nationality !== '' && (
                         <small style={{ display: 'block', marginTop: '5px' }}>※ 50% upfront payment required on arrival in USD</small>
                       )}
@@ -896,9 +994,15 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
             <div style={{ display: 'flex', gap: '15px' }}>
               <button onClick={() => setShowInternationalConfirm(false)} style={{ flex: 1, padding: '12px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => {
-                setShowInternationalConfirm(false);
+                // IMMEDIATE UI UPDATE - shows loading overlay with message
                 setIsSubmitting(true);
-                startLoading('Submitting your booking...', 3);
+                setShowLoadingOverlay(true);
+                setLoadingMessage('Preparing your international booking...');
+                setLoadingStep(1);
+                setShowInternationalConfirm(false);
+                setShowBookingForm(false);
+                
+                // Start the actual booking process
                 handleInternationalBooking();
               }} style={{ flex: 1, padding: '12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Agree & Proceed</button>
             </div>

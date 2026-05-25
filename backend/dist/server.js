@@ -206,6 +206,13 @@ app.post('/api/activities/upload', upload.fields([
       return Number.isNaN(parsed) ? fallback : parsed;
     };
 
+    const parseBoolean = (value, fallback = false) => {
+      if (typeof value === 'boolean') return value;
+      if (value === undefined || value === null || value === '') return fallback;
+      const lower = String(value).toLowerCase();
+      return ['true', '1', 'yes', 'on'].includes(lower);
+    };
+
     const activityData = {
       name: raw.name || '',
       location: raw.location || '',
@@ -213,9 +220,16 @@ app.post('/api/activities/upload', upload.fields([
       description: raw.description || '',
       pricePerDay: parseNumber(raw.pricePerDay, 0),
       pricePerPerson: parseNumber(raw.pricePerPerson, 0),
+      hasAccommodation: parseBoolean(raw.hasAccommodation, true),
+      campingRate: parseBoolean(raw.hasAccommodation, true) ? parseNumber(raw.campingRate, 0) : 0,
+      roomsRate: parseBoolean(raw.hasAccommodation, true) ? parseNumber(raw.roomsRate, 0) : 0,
+      charetsRate: parseBoolean(raw.hasAccommodation, true) ? parseNumber(raw.charetsRate, 0) : 0,
+      airportPickupAvailable: parseBoolean(raw.airportPickupAvailable, true),
+      airportPickupRate: parseBoolean(raw.airportPickupAvailable, true) ? parseNumber(raw.airportPickupRate, 7.5) : 0,
       durationHours: parseNumber(raw.durationHours, 0),
       category: raw.category || 'hiking',
       difficulty: raw.difficulty || 'easy',
+      mealIncluded: parseBoolean(raw.mealIncluded, false),
       minPeople: parseNumber(raw.minPeople, 1),
       maxPeople: parseNumber(raw.maxPeople, 20),
       status: raw.status || 'active',
@@ -376,6 +390,82 @@ app.post('/api/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.post('/api/forgot-password', async (req, res) => {
+  let body = req.body;
+  if (Buffer.isBuffer(body)) {
+    const bodyString = body.toString('utf-8');
+    try {
+      body = JSON.parse(bodyString);
+    } catch (e) {}
+  }
+
+  try {
+    const { email } = body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findByEmail(email);
+    const resetToken = crypto.randomBytes(20).toString('hex');
+    const expiresAt = Date.now() + 60 * 60 * 1000;
+
+    await PasswordReset.create({
+      email,
+      token: resetToken,
+      expiresAt
+    });
+
+    if (user) {
+      await sendPasswordResetEmail(user.email, user.fullName || 'Customer', resetToken);
+    }
+
+    res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.post('/api/reset-password', async (req, res) => {
+  let body = req.body;
+  if (Buffer.isBuffer(body)) {
+    const bodyString = body.toString('utf-8');
+    try {
+      body = JSON.parse(bodyString);
+    } catch (e) {}
+  }
+
+  try {
+    const { token, newPassword } = body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    const resetEntries = await PasswordReset.findByToken(token);
+    const resetEntry = Array.isArray(resetEntries) ? resetEntries[0] : resetEntries;
+
+    if (!resetEntry || resetEntry.used || resetEntry.expiresAt < Date.now()) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    const user = await User.findByEmail(resetEntry.email);
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid reset token' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await User.update(user.id, { password: hashedPassword });
+    await PasswordReset.markAsUsed(token);
+
+    res.json({ message: 'Password has been reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -638,11 +728,13 @@ app.post('/api/custom-bookings', async (req, res) => {
       totalPrice, 
       specialRequests, 
       airportPickup, 
+      airportPickupRate,
       flightNumber, 
       arrivalTime, 
       personalDetails, 
       nationality, 
-      paymentMethod 
+      paymentMethod,
+      bookingCode
     } = body;
     
     if (!userId) {
@@ -660,21 +752,31 @@ app.post('/api/custom-bookings', async (req, res) => {
       }
     }
     
+    const computedTotalPrice = Number(totalPrice) || selectedActivities.reduce((sum, act) => sum + (Number(act.totalPrice) || 0), 0);
     const booking = await CustomBooking.create({
       userId,
       selectedActivities: selectedActivities.map(act => ({
         activity: act.activity,
         numberOfDays: act.numberOfDays,
         numberOfPeople: act.numberOfPeople,
-        totalPrice: act.totalPrice,
+        accommodationChoice: act.accommodationChoice || 'camping',
+        accommodationRate: Number(act.accommodationRate) || 0,
+        foodOption: act.foodOption || 'exclusive',
+        foodRate: Number(act.foodRate) || 0,
+        foodTotal: Number(act.foodTotal) || 0,
+        totalPrice: Number(act.totalPrice) || 0,
         selectedDate: new Date(act.selectedDate).toISOString()
       })),
-      totalPrice,
+      totalPrice: computedTotalPrice,
       specialRequests: specialRequests || '',
-      airportPickup: airportPickup || false,
+      airportPickup: Boolean(airportPickup),
+      airportPickupRate: airportPickup ? Number(airportPickupRate) || 7.5 : 0,
       flightNumber: flightNumber || '',
       arrivalTime: arrivalTime || '',
       personalDetails: personalDetails || {},
+      accommodationChoice: selectedActivities[0]?.accommodationChoice || 'camping',
+      accommodationRate: Number(selectedActivities[0]?.accommodationRate) || 0,
+      bookingCode,
       nationality: nationality || 'international',
       paymentMethod: paymentMethod || null,
       status: 'pending',

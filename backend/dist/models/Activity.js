@@ -14,6 +14,13 @@ const activitySchema = new mongoose.Schema({
     required: true 
   },
   difficulty: { type: String, enum: ['easy', 'moderate', 'challenging'], default: 'moderate' },
+  hasAccommodation: { type: Boolean, default: true },
+  campingRate: { type: Number, default: 0 },
+  roomsRate: { type: Number, default: 0 },
+  charetsRate: { type: Number, default: 0 },
+  airportPickupAvailable: { type: Boolean, default: true },
+  airportPickupRate: { type: Number, default: 7.5 },
+  mealIncluded: { type: Boolean, default: false },
   images: [{ type: String }],
   mainImage: { type: String },
   whatToBring: [String],

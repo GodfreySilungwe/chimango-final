@@ -49,6 +49,13 @@ const AdminDashboard = () => {
     durationHours: 3,
     category: 'hiking',
     difficulty: 'easy',
+    hasAccommodation: true,
+    campingRate: 175,
+    roomsRate: 210,
+    charetsRate: 235,
+    airportPickupAvailable: true,
+    airportPickupRate: 7.5,
+    mealIncluded: false,
     minPeople: 1,
     maxPeople: 20,
     status: 'active'
@@ -209,7 +216,11 @@ const AdminDashboard = () => {
   };
 
   const handleActivityImagesChange = (e) => {
-    setNewActivityImages(Array.from(e.target.files || []));
+    const files = Array.from(e.target.files || []);
+    if (files.length > 10) {
+      alert('You can upload up to 10 images only. Extra files were ignored.');
+    }
+    setNewActivityImages(files.slice(0, 10));
   };
 
   const confirmDelete = (item, type) => {
@@ -311,6 +322,13 @@ const AdminDashboard = () => {
       durationHours: 3,
       category: 'hiking',
       difficulty: 'easy',
+      hasAccommodation: true,
+      campingRate: 175,
+      roomsRate: 210,
+      charetsRate: 235,
+      airportPickupAvailable: true,
+      airportPickupRate: 7.5,
+      mealIncluded: false,
       minPeople: 1,
       maxPeople: 20,
       status: 'active'
@@ -489,13 +507,37 @@ const AdminDashboard = () => {
                   <option value="cultural">Cultural</option>
                   <option value="beach">Beach</option>
                 </select>
+                <select value={newActivity.hasAccommodation ? 'yes' : 'no'} onChange={(e) => setNewActivity({...newActivity, hasAccommodation: e.target.value === 'yes'})}>
+                  <option value="yes">Includes Accommodation</option>
+                  <option value="no">No Accommodation Required</option>
+                </select>
                 <input type="number" placeholder="Price Per Day (USD)" value={newActivity.pricePerDay} onChange={(e) => setNewActivity({...newActivity, pricePerDay: parseInt(e.target.value)})} />
+                <input type="number" placeholder="Price Per Person (USD)" value={newActivity.pricePerPerson} onChange={(e) => setNewActivity({...newActivity, pricePerPerson: parseInt(e.target.value)})} />
+                {newActivity.hasAccommodation && (
+                  <>
+                    <input type="number" placeholder="Camping Rate (USD)" value={newActivity.campingRate} onChange={(e) => setNewActivity({...newActivity, campingRate: parseInt(e.target.value)})} />
+                    <input type="number" placeholder="Standard Rooms Rate (USD)" value={newActivity.roomsRate} onChange={(e) => setNewActivity({...newActivity, roomsRate: parseInt(e.target.value)})} />
+                    <input type="number" placeholder="Charets Rate (USD)" value={newActivity.charetsRate} onChange={(e) => setNewActivity({...newActivity, charetsRate: parseInt(e.target.value)})} />
+                  </>
+                )}
+                <select value={newActivity.airportPickupAvailable ? 'yes' : 'no'} onChange={(e) => setNewActivity({...newActivity, airportPickupAvailable: e.target.value === 'yes'})}>
+                  <option value="yes">Airport Pickup Available</option>
+                  <option value="no">Airport Pickup Not Available</option>
+                </select>
+                {newActivity.airportPickupAvailable && (
+                  <input type="number" placeholder="Airport Pickup Rate (USD)" value={newActivity.airportPickupRate} onChange={(e) => setNewActivity({...newActivity, airportPickupRate: parseFloat(e.target.value)})} />
+                )}
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input type="checkbox" checked={newActivity.mealIncluded} onChange={(e) => setNewActivity({...newActivity, mealIncluded: e.target.checked})} />
+                  Include Traditional Local Meals in Price
+                </label>
                 <input type="number" placeholder="Duration (hours)" value={newActivity.durationHours} onChange={(e) => setNewActivity({...newActivity, durationHours: parseInt(e.target.value)})} />
                 <select value={newActivity.difficulty} onChange={(e) => setNewActivity({...newActivity, difficulty: e.target.value})}>
                   <option value="easy">Easy</option>
                   <option value="moderate">Moderate</option>
                   <option value="challenging">Challenging</option>
                 </select>
+                <input type="number" placeholder="Min People" min="1" value={newActivity.minPeople} onChange={(e) => setNewActivity({...newActivity, minPeople: parseInt(e.target.value)})} />
                 <input type="number" placeholder="Max People" value={newActivity.maxPeople} onChange={(e) => setNewActivity({...newActivity, maxPeople: parseInt(e.target.value)})} />
               </div>
 
@@ -527,6 +569,14 @@ const AdminDashboard = () => {
                   <th>Name</th>
                   <th>Location</th>
                   <th>Price/Day</th>
+                  <th>Price/Person</th>
+                  <th>Has Acc.</th>
+                  <th>Camping Rate</th>
+                  <th>Rooms Rate</th>
+                  <th>Charets Rate</th>
+                  <th>Pickup</th>
+                  <th>Meals</th>
+                  <th>Min</th>
                   <th>Category</th>
                   <th>Difficulty</th>
                   <th>Actions</th>
@@ -538,6 +588,14 @@ const AdminDashboard = () => {
                     <td>{activity.name}</td>
                     <td>{activity.location}</td>
                     <td>${activity.pricePerDay}</td>
+                    <td>${activity.pricePerPerson}</td>
+                    <td>{activity.hasAccommodation ? 'Yes' : 'No'}</td>
+                    <td>{activity.campingRate != null ? `$${activity.campingRate}` : 'N/A'}</td>
+                    <td>{activity.roomsRate != null ? `$${activity.roomsRate}` : 'N/A'}</td>
+                    <td>{activity.charetsRate != null ? `$${activity.charetsRate}` : 'N/A'}</td>
+                    <td>{activity.airportPickupAvailable ? (activity.airportPickupRate != null ? `$${activity.airportPickupRate}` : 'N/A') : 'No'}</td>
+                    <td>{activity.mealIncluded ? 'Yes' : 'No'}</td>
+                    <td>{activity.minPeople}</td>
                     <td><span className="category-badge">{activity.category}</span></td>
                     <td><span className={`difficulty-badge ${activity.difficulty}`}>{activity.difficulty}</span></td>
                     <td>

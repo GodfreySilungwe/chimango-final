@@ -4,9 +4,14 @@ import { getImageUrl } from '../config';
 
 const ActivityCard = ({ activity, onBookClick }) => {
   const [showGallery, setShowGallery] = useState(false);
+  const hasAccommodation = activity?.hasAccommodation !== false;
+  const baseRate = activity?.pricePerPerson || activity?.pricePerDay || 0;
+  const [accommodationSelected, setAccommodationSelected] = useState(
+    hasAccommodation ? ((activity && (activity.roomsRate ? 'rooms' : 'camping')) || 'rooms') : 'none'
+  );
 
   const handleCardClick = () => {
-    onBookClick(activity);
+    if (typeof onBookClick === 'function') onBookClick(activity, accommodationSelected);
   };
 
   const handleImageClick = (e) => {
@@ -16,8 +21,16 @@ const ActivityCard = ({ activity, onBookClick }) => {
 
   const handleBookClick = (e) => {
     e.stopPropagation();
-    onBookClick(activity);
+    if (typeof onBookClick === 'function') onBookClick(activity, accommodationSelected);
   };
+
+  const accommodationRates = {
+    camping: activity?.campingRate ?? 175,
+    rooms: activity?.roomsRate ?? 210,
+    charets: activity?.charetsRate ?? 235
+  };
+  const displayedRate = hasAccommodation ? (accommodationRates[accommodationSelected] || 175) : baseRate;
+  const mealsLabel = activity?.mealIncluded ? 'Traditional local meals inclusive' : 'Traditional local meals not inclusive';
 
   return (
     <>
@@ -77,9 +90,36 @@ const ActivityCard = ({ activity, onBookClick }) => {
             {activity.description?.substring(0, 80)}...
           </p>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', flexWrap: 'wrap', gap: '10px' }}>
-            <span className="activity-card-price" style={{ fontSize: 'clamp(16px, 4vw, 18px)', fontWeight: 'bold', color: '#e67e22' }}>
-              USD {activity.pricePerDay}
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span className="activity-card-price" style={{ fontSize: 'clamp(16px, 4vw, 18px)', fontWeight: 'bold', color: '#e67e22' }}>
+                USD {displayedRate}
+              </span>
+              <span style={{ fontSize: '13px', color: '#666' }}>per person per day (package inclusive)</span>
+              <span style={{ display: 'block', fontSize: '13px', color: '#666' }}>{mealsLabel}</span>
+              <div style={{ fontSize: '13px', color: '#666' }}>
+                {hasAccommodation ? (
+                  <>
+                    <div style={{ marginBottom: '6px' }}>Choose your accommodation preference</div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                        <input type="radio" name={`acc-${activity.id || activity._id}`} value="camping" checked={accommodationSelected === 'camping'} onChange={() => setAccommodationSelected('camping')} />
+                        Camping
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                        <input type="radio" name={`acc-${activity.id || activity._id}`} value="rooms" checked={accommodationSelected === 'rooms'} onChange={() => setAccommodationSelected('rooms')} />
+                        Standard Rooms
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                        <input type="radio" name={`acc-${activity.id || activity._id}`} value="charets" checked={accommodationSelected === 'charets'} onChange={() => setAccommodationSelected('charets')} />
+                        Charets
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: '13px', color: '#666' }}>No accommodation required</div>
+                )}
+              </div>
+            </div>
             <button
               onClick={handleBookClick}
               className="view-details-btn"

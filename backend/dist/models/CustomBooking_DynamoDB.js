@@ -6,7 +6,7 @@ const CustomBooking = {
   // Create a new custom booking
   async create(bookingData) {
     const bookingId = uuidv4();
-    const bookingCode = this.generateBookingCode();
+    const bookingCode = bookingData.bookingCode || this.generateBookingCode();
     
     const item = {
       PK: `CUSTOMBOOKING#${bookingId}`,
@@ -20,9 +20,12 @@ const CustomBooking = {
       paymentStatus: bookingData.paymentStatus || 'pending',
       specialRequests: bookingData.specialRequests || '',
       airportPickup: bookingData.airportPickup || false,
+      airportPickupRate: bookingData.airportPickupRate || 0,
       flightNumber: bookingData.flightNumber || '',
       arrivalTime: bookingData.arrivalTime || '',
       personalDetails: bookingData.personalDetails || {},
+      accommodationChoice: bookingData.accommodationChoice || 'camping',
+      accommodationRate: bookingData.accommodationRate || 0,
       bookingCode: bookingCode,
       nationality: bookingData.nationality || 'international',
       paymentMethod: bookingData.paymentMethod || null,

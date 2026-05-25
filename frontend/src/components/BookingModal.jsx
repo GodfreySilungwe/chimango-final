@@ -7,6 +7,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
   const [activeTab, setActiveTab] = useState('details');
   const [numberOfDays, setNumberOfDays] = useState(1);
   const [numberOfPeople, setNumberOfPeople] = useState(1);
+  const [accommodation, setAccommodation] = useState('camping');
   const [selectedDate, setSelectedDate] = useState('');
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [nationality, setNationality] = useState('');
@@ -70,9 +71,14 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
     setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
   };
 
-  const totalPrice = (activity.pricePerDay * numberOfDays) + 
-                     (activity.pricePerPerson * numberOfPeople) + 
-                     (airportPickup ? 7.50 : 0);
+  const accommodationRates = activity.accommodationRates || {
+    camping: activity.campingRate || 175,
+    rooms: activity.roomsRate || 210,
+    charets: activity.charetsRate || 235
+  };
+  const accommodationCostPerPersonPerDay = accommodationRates[accommodation] || 0;
+  const airportPickupRate = activity.airportPickupRate != null ? activity.airportPickupRate : 0;
+  const totalPrice = (accommodationCostPerPersonPerDay * numberOfPeople * numberOfDays) + (airportPickup ? airportPickupRate : 0);
 
   const clearFormError = () => {
     if (formError) setFormError('');
@@ -198,10 +204,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
           },
           numberOfDays,
           numberOfPeople,
+          accommodationChoice: accommodation,
+          accommodationRate: accommodationCostPerPersonPerDay,
+          airportPickupRate: airportPickup ? airportPickupRate : 0,
           totalPrice: totalPrice,
           selectedDate: selectedDate
         }],
         totalPrice: totalPrice,
+        accommodationChoice: accommodation,
+        accommodationRate: accommodationCostPerPersonPerDay,
+        airportPickupRate: airportPickup ? airportPickupRate : 0,
         specialRequests: personalDetails.specialRequests,
         airportPickup,
         flightNumber: flightNumber || '',
@@ -293,10 +305,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
           },
           numberOfDays,
           numberOfPeople,
+          accommodationChoice: accommodation,
+          accommodationRate: accommodationCostPerPersonPerDay,
+          airportPickupRate: airportPickup ? airportPickupRate : 0,
           totalPrice: totalPrice,
           selectedDate: selectedDate
         }],
         totalPrice: totalPrice,
+        accommodationChoice: accommodation,
+        accommodationRate: accommodationCostPerPersonPerDay,
+        airportPickupRate: airportPickup ? airportPickupRate : 0,
         specialRequests: personalDetails.specialRequests,
         airportPickup,
         flightNumber: flightNumber || '',
@@ -636,8 +654,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         <div style={{ padding: '20px 30px', backgroundColor: '#f8f9fa', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <span style={{ fontSize: '14px', color: '#666' }}>Price</span>
-            <div><span style={{ fontSize: '32px', fontWeight: 'bold', color: '#e67e22' }}>USD {activity.pricePerDay}</span><span style={{ fontSize: '14px', color: '#666' }}> / day</span></div>
-            <div><span style={{ fontSize: '14px', color: '#666' }}>+ USD {activity.pricePerPerson} per person</span></div>
+            <div><span style={{ fontSize: '32px', fontWeight: 'bold', color: '#e67e22' }}>USD {accommodationCostPerPersonPerDay}</span><span style={{ fontSize: '14px', color: '#666' }}> per person per day</span></div>
           </div>
           <button onClick={handleBookClick} style={{ backgroundColor: '#e67e22', color: 'white', border: 'none', padding: '14px 40px', borderRadius: '50px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>Book Now</button>
         </div>
@@ -668,8 +685,17 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                   <div>
                     <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of Days</label><input type="number" min="1" max="7" value={numberOfDays} onChange={(e) => { setNumberOfDays(parseInt(e.target.value)); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
                     <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Number of People</label><input type="number" min={activity.minPeople} max={activity.maxPeople} value={numberOfPeople} onChange={(e) => { setNumberOfPeople(parseInt(e.target.value)); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Accommodation preference (price shown is the full activity package per person per day, accommodation and meals inclusive)</label>
+                      <select value={accommodation} onChange={(e) => { setAccommodation(e.target.value); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }}>
+                        <option value="camping">Camping - USD {accommodationRates.camping} per person per day (full package rate)</option>
+                        <option value="rooms">Standard Rooms - USD {accommodationRates.rooms} per person per day (full package rate)</option>
+                        <option value="charets">Charets - USD {accommodationRates.charets} per person per day (full package rate)</option>
+                      </select>
+                      <small style={{ display: 'block', marginTop: '8px', color: '#666' }}>Prices are shown for the complete activity package per person per day, inclusive of accommodation and meals.</small>
+                    </div>
                     <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Travel Date</label><input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); clearFormError(); }} min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" checked={airportPickup} onChange={(e) => { setAirportPickup(e.target.checked); clearFormError(); }} /><span>✈️ Add Airport Pickup Service <strong>(USD 7.50 extra)</strong></span></label></div>
+                    <div style={{ marginBottom: '20px' }}><label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" checked={airportPickup} onChange={(e) => { setAirportPickup(e.target.checked); clearFormError(); }} /><span>✈️ Add Airport Pickup Service <strong>(USD {airportPickupRate} extra)</strong></span></label></div>
                     {airportPickup && (
                       <div style={{ backgroundColor: '#f0f7ff', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
                         <div style={{ marginBottom: '10px' }}>
@@ -736,7 +762,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                     <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '12px', marginBottom: '20px', textAlign: 'center' }}>
                       <strong style={{ fontSize: '14px', color: '#666' }}>Total Amount</strong>
                       <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#e67e22' }}>USD {totalPrice.toLocaleString()}</div>
-                      {airportPickup && <small>+ USD 7.50 for airport pickup</small>}
+                      {airportPickup && <small>+ USD {airportPickupRate} for airport pickup</small>}
                     </div>
                     
                     <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#e8f4fd', borderRadius: '8px' }}>
@@ -765,7 +791,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                           ≈ MWK {(totalPrice * 1800).toLocaleString()}
                         </div>
                       )}
-                      {airportPickup && <small>+ USD 7.50 for airport pickup</small>}
+                      {airportPickup && <small>+ USD {airportPickupRate} for airport pickup</small>}
                       {nationality !== 'malawian' && (
                         <small style={{ display: 'block', marginTop: '5px' }}>※ 50% upfront payment required on arrival in USD</small>
                       )}

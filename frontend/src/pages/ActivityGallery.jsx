@@ -15,6 +15,7 @@ const ActivityGallery = () => {
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [selectedAccommodation, setSelectedAccommodation] = useState('camping');
   const [user, setUser] = useState(null);
   const [showFilters, setShowFilters] = useState(true);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
@@ -119,8 +120,9 @@ const ActivityGallery = () => {
     setSelectedDifficulty('all');
   };
 
-  const openActivityModal = (activity) => {
+  const openActivityModal = (activity, accommodation) => {
     setSelectedActivity(activity);
+    setSelectedAccommodation(accommodation || 'camping');
   };
 
   const closeModal = () => {
@@ -312,10 +314,10 @@ const ActivityGallery = () => {
         ) : viewMode === 'grid' ? (
           <div className="activities-grid">
             {filteredActivities.map((activity, index) => (
-              <ActivityCard 
+                <ActivityCard
                 key={activity._id || activity.id} 
                 activity={activity} 
-                onBookClick={openActivityModal}
+                  onBookClick={(a, acc) => openActivityModal(a, acc)}
                 user={user}
               />
             ))}
@@ -364,6 +366,7 @@ const ActivityGallery = () => {
           activity={selectedActivity}
           onClose={closeModal}
           user={user}
+          selectedAccommodation={selectedAccommodation}
         />
       )}
     </div>
