@@ -108,7 +108,7 @@ const RegisterPage = () => {
         <div className="register-brand">
           <div className="brand-content">
             <div className="brand-icon">🌍✨</div>
-            <h1 className="brand-title">Join Chimango Tour</h1>
+            <h1 className="brand-title">Join Chimango Tours</h1>
             <p className="brand-tagline">Start your African adventure today</p>
             <div className="brand-features">
               <div className="brand-feature">
@@ -130,7 +130,7 @@ const RegisterPage = () => {
             </div>
             <div className="brand-testimonial">
               <div className="testimonial-quote">"</div>
-              <p>"Chimango Tour made our Malawi trip unforgettable! The booking process was seamless."</p>
+              <p>"Chimango Tours made our Malawi trip unforgettable! The booking process was seamless."</p>
               <div className="testimonial-author">— Michael T. ⭐⭐⭐⭐⭐</div>
             </div>
           </div>

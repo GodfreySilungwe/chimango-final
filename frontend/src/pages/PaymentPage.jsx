@@ -15,7 +15,7 @@ const PaymentPage = () => {
 
   const bankDetails = {
     bankName: 'National Bank of Malawi',
-    accountName: 'Chimango Tour',
+    accountName: 'Chimango Tours',
     accountNumber: '1006924529',
     branch: 'Lilongwe City Centre',
     swiftCode: 'NBMAMWMW'
@@ -25,9 +25,6 @@ const PaymentPage = () => {
     airtel: '0985489510',
     tnm: '0884183092'
   };
-
-  // Exchange rate: 1 USD = 1800 MWK
-  const exchangeRate = 1800;
 
   useEffect(() => {
     const storedData = sessionStorage.getItem('pendingPayment');
@@ -104,7 +101,6 @@ const PaymentPage = () => {
         paymentMethod: methodName,
         paymentReference: paymentReference,
         amount: bookingData.totalPrice,
-        amountMWK: Math.round(bookingData.totalPrice * exchangeRate),
         customerName: bookingData.personalDetails?.fullName,
         customerPhone: bookingData.personalDetails?.phone,
         customerEmail: bookingData.personalDetails?.email,
@@ -121,7 +117,7 @@ const PaymentPage = () => {
         body: JSON.stringify(paymentData)
       });
       
-      alert(`✅ Payment request submitted successfully!\n\nBooking Code: ${bookingData.bookingCode}\nReference: ${paymentReference}\nAmount: MWK ${Math.round(bookingData.totalPrice * exchangeRate).toLocaleString()}\n\nYour booking is pending admin approval.`);
+      alert(`✅ Payment request submitted successfully!\n\nBooking Code: ${bookingData.bookingCode}\nReference: ${paymentReference}\nAmount: USD ${bookingData.totalPrice.toLocaleString()}\n\nYour booking is pending admin approval.`);
       
       sessionStorage.removeItem('pendingPayment');
       
@@ -139,11 +135,11 @@ const PaymentPage = () => {
 
   // PayChangu Payment Handler
   const handlePayChanguPayment = () => {
-    const amountMWK = Math.round(bookingData.totalPrice * exchangeRate);
+    const amountUSD = bookingData.totalPrice;
     const paymentLink = "https://pay.paychangu.com/SC-CWC5T0";
-    const paymentUrl = `${paymentLink}?amount=${amountMWK}&currency=MWK&description=Chimango%20Tour%20Booking%20${bookingData.bookingCode}`;
+    const paymentUrl = `${paymentLink}?amount=${amountUSD}&currency=USD&description=Chimango%20Tours%20Booking%20${bookingData.bookingCode}`;
     
-    console.log(`Redirecting to PayChangu with amount: MWK ${amountMWK.toLocaleString()}`);
+    console.log(`Redirecting to PayChangu with amount: USD ${amountUSD.toLocaleString()}`);
     window.location.href = paymentUrl;
   };
 
@@ -168,8 +164,6 @@ const PaymentPage = () => {
       </div>
     );
   }
-
-  const amountMWK = Math.round(bookingData.totalPrice * exchangeRate);
 
   return (
     <div className="payment-page">
@@ -212,11 +206,6 @@ const PaymentPage = () => {
             <div className="amount-label">Amount to Pay (USD)</div>
             <div className="amount-value">${bookingData.totalPrice}</div>
           </div>
-          <div className="amount-card amount-card-mwk">
-            <div className="amount-label">Amount to Pay (MWK)</div>
-            <div className="amount-value">{amountMWK.toLocaleString()} MWK</div>
-            <div className="amount-note">*Exchange rate: 1 USD = {exchangeRate} MWK</div>
-          </div>
         </div>
 
         {/* Payment Methods */}
@@ -248,10 +237,11 @@ const PaymentPage = () => {
                   <p>✓ Secure checkout</p>
                 </div>
                 <button className="btn-paychangu" onClick={handlePayChanguPayment}>
-                  Pay MWK {amountMWK.toLocaleString()} → 
+                  Pay USD {bookingData.totalPrice.toLocaleString()} →
                 </button>
               </div>
             )}
+
           </div>
 
           {/* Airtel Money Option */}
@@ -276,7 +266,7 @@ const PaymentPage = () => {
                 <div className="payment-instructions">
                   <p>Send payment to Airtel Money number:</p>
                   <div className="payment-number">{mobileMoneyNumbers.airtel}</div>
-                  <p><strong>Amount:</strong> MWK {amountMWK.toLocaleString()}</p>
+                  <p><strong>Amount:</strong> USD {bookingData.totalPrice.toLocaleString()}</p>
                   <p><strong>Reference:</strong> {bookingData.bookingCode}</p>
                 </div>
               </div>
@@ -305,7 +295,7 @@ const PaymentPage = () => {
                 <div className="payment-instructions">
                   <p>Send payment to TNM Mpamba number:</p>
                   <div className="payment-number">{mobileMoneyNumbers.tnm}</div>
-                  <p><strong>Amount:</strong> MWK {amountMWK.toLocaleString()}</p>
+                  <p><strong>Amount:</strong> USD {bookingData.totalPrice.toLocaleString()}</p>
                   <p><strong>Reference:</strong> {bookingData.bookingCode}</p>
                 </div>
               </div>
@@ -325,7 +315,7 @@ const PaymentPage = () => {
               />
               <div className="payment-option-icon">🏦</div>
               <div className="payment-option-info">
-                <span className="payment-option-title">Bank Transfer (MWK)</span>
+                <span className="payment-option-title">Bank Transfer</span>
                 <span className="payment-option-desc">National Bank of Malawi</span>
               </div>
             </div>
@@ -354,7 +344,7 @@ const PaymentPage = () => {
                   </div>
                 </div>
                 <div className="payment-instructions">
-                  <p><strong>Amount:</strong> MWK {amountMWK.toLocaleString()}</p>
+                  <p><strong>Amount:</strong> USD {bookingData.totalPrice.toLocaleString()}</p>
                   <p><strong>Reference:</strong> {bookingData.bookingCode}</p>
                 </div>
               </div>

@@ -186,7 +186,7 @@ const HomePage = () => {
               color: '#1a472a',
               marginBottom: '1rem',
               fontFamily: 'Playfair Display, Georgia, serif'
-            }}>Welcome to Chimango Tour</h2>
+            }}>Welcome to Chimango Tours</h2>
             <p className="welcome-subtitle" style={{
               fontSize: '1rem',
               color: '#4a5568',

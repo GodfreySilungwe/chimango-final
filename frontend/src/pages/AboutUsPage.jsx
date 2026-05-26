@@ -59,7 +59,7 @@ const AboutUsPage = () => {
             Discover the <span className="highlight">Warm Heart</span> of Africa
           </h1>
           <p className="about-hero-subtitle">
-            Chimango Tour was born from a passion to share Malawi's breathtaking landscapes, 
+            Chimango Tours was born from a passion to share Malawi's breathtaking landscapes, 
             rich culture, and warm hospitality with the world.
           </p>
         </div>
@@ -116,15 +116,15 @@ const AboutUsPage = () => {
         </div>
       </section>
 
-      {/* What is Chimango Tour Section */}
+      {/* What is Chimango Tours Section */}
       <section className="what-is-section">
         <div className="container">
           <div className="wi-grid">
             <div className="wi-content">
               <span className="section-badge">Who We Are</span>
-              <h2 className="section-title">What is <span className="highlight">Chimango Tour?</span></h2>
+              <h2 className="section-title">What is <span className="highlight">Chimango Tours?</span></h2>
               <p className="wi-description">
-                Chimango Tour is a comprehensive tourist and booking management system designed to help travelers 
+                Chimango Tours is a comprehensive tourist and booking management system designed to help travelers 
                 discover, book, and manage amazing activities across Malawi. We curate authentic experiences that 
                 connect you with the warmth of our people, the richness of our culture, and the breathtaking 
                 beauty of our landscapes.
@@ -253,7 +253,7 @@ const AboutUsPage = () => {
             </div>
             <div className="testimonial-card">
               <div className="testimonial-quote">"</div>
-              <p className="testimonial-text">The safari was incredible! Saw all the Big Five and the accommodation was top-notch. Highly recommend Chimango Tour!</p>
+              <p className="testimonial-text">The safari was incredible! Saw all the Big Five and the accommodation was top-notch. Highly recommend Chimango Tours!</p>
               <div className="testimonial-author">
                 <strong>David Chen</strong>
                 <span>Singapore</span>

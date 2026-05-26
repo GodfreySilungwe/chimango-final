@@ -8,7 +8,7 @@ const PaymentModal = ({ bookingData, onClose, onPaymentConfirmed }) => {
 
   const bankDetails = {
     bankName: 'National Bank of Malawi',
-    accountName: 'Chimango Tour',
+    accountName: 'Chimango Tours',
     accountNumber: '1006924529',
     branch: 'Lilongwe City Centre'
   };
@@ -93,7 +93,7 @@ const PaymentModal = ({ bookingData, onClose, onPaymentConfirmed }) => {
 
       // Create WhatsApp message for admin (using simple text without special formatting)
       const message = 
-        `🔔 NEW PAYMENT REQUEST - CHIMANGO TOUR 🔔\n\n` +
+        `🔔 NEW PAYMENT REQUEST - CHIMANGO TOURS 🔔\n\n` +
         `Booking Code: ${bookingData.bookingCode}\n` +
         `Customer Name: ${paymentData.customerName || 'N/A'}\n` +
         `Customer Phone: ${paymentData.customerPhone || 'N/A'}\n` +

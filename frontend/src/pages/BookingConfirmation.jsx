@@ -73,7 +73,7 @@ const BookingConfirmation = () => {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Booking Confirmation - ${booking?.bookingCode || 'Chimango Tour'}</title>
+          <title>Booking Confirmation - ${booking?.bookingCode || 'Chimango Tours'}</title>
           <style>
             body { font-family: 'Poppins', Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
             .header { text-align: center; border-bottom: 2px solid #e67e22; padding-bottom: 20px; margin-bottom: 30px; }
@@ -88,8 +88,8 @@ const BookingConfirmation = () => {
         <body>
           ${printContent}
           <div class="footer">
-            <p>Chimango Tour - Discover the Warm Heart of Africa</p>
-            <p>Email: info@chimangotour.com | Phone: +265 123 456 789</p>
+            <p>Chimango Tours - Discover the Warm Heart of Africa</p>
+            <p>Email: info@chimangotour.com | Phone: +265 986 209 952, +265 881 392 878</p>
           </div>
         </body>
       </html>
@@ -101,14 +101,14 @@ const BookingConfirmation = () => {
   const shareOnWhatsApp = () => {
     const activity = booking.selectedActivities?.[0]?.activity;
     const status = booking?.status === 'pending' ? 'PENDING' : 'CONFIRMED';
-    const message = `🎉 Booking ${status} - Chimango Tour%0A%0A` +
+    const message = `🎉 Booking ${status} - Chimango Tours%0A%0A` +
       `Booking Code: ${booking.bookingCode}%0A` +
       `Activity: ${activity?.name || activity || 'Activity'}%0A` +
       `Date: ${new Date(booking.selectedActivities[0]?.selectedDate).toLocaleDateString()}%0A` +
       `Days: ${booking.selectedActivities[0]?.numberOfDays}%0A` +
       `People: ${booking.selectedActivities[0]?.numberOfPeople}%0A` +
       `Total: USD ${booking.totalPrice?.toLocaleString()}%0A%0A` +
-      `Thank you for choosing Chimango Tour! 🌍`;
+      `Thank you for choosing Chimango Tours! 🌍`;
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -145,10 +145,10 @@ const BookingConfirmation = () => {
 
   const getStatusConfig = () => {
     if (isVerified) {
-      return { icon: '✅', title: 'Booking Verified!', message: 'Your booking has been verified by our admin team. Thank you for choosing Chimango Tour!', color: '#2ecc71' };
+      return { icon: '✅', title: 'Booking Verified!', message: 'Your booking has been verified by our admin team. Thank you for choosing Chimango Tours!', color: '#2ecc71' };
     }
     if (isConfirmed) {
-      return { icon: '✅', title: 'Booking Confirmed!', message: 'Your booking has been confirmed. Thank you for choosing Chimango Tour!', color: '#2ecc71' };
+      return { icon: '✅', title: 'Booking Confirmed!', message: 'Your booking has been confirmed. Thank you for choosing Chimango Tours!', color: '#2ecc71' };
     }
     if (isPending) {
       return { icon: '⏳', title: 'Booking Request Sent!', message: 'Your booking has been submitted and is awaiting admin approval.', color: '#f39c12' };
@@ -314,7 +314,7 @@ const BookingConfirmation = () => {
 
           {/* Footer */}
           <div className="confirmation-footer">
-            <div className="footer-logo">🌍 Chimango Tour</div>
+            <div className="footer-logo">🌍 Chimango Tours</div>
             <div className="footer-tagline">Discover the Warm Heart of Africa</div>
             <div className="footer-contact">
               📧 info@chimangotour.com | 📞 +265 123 456 789

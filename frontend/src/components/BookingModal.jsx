@@ -16,6 +16,8 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
   const [arrivalTime, setArrivalTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInternationalConfirm, setShowInternationalConfirm] = useState(false);
+  const [showSentModal, setShowSentModal] = useState(false);
+  const [showRedirectingModal, setShowRedirectingModal] = useState(false);
   const [formError, setFormError] = useState('');
   const [showFullGallery, setShowFullGallery] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
@@ -134,9 +136,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
     if (nationality === 'malawian' && !personalDetails.phone.trim()) {
       return 'Phone number is required for Malawian customers.';
     }
-    if (nationality !== 'malawian' && !personalDetails.passportNumber.trim()) {
-      return 'Passport number is required for international customers.';
-    }
+    // Passport number is optional for international customers; user may provide later
     return null;
   };
 
@@ -177,21 +177,16 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
       return;
     }
 
-    if (!personalDetails.passportNumber) {
-      alert('Passport number is required for international customers');
-      return;
-    }
+    // Passport is optional for international customers
 
     // NO validation for arrival time or flight number - they are OPTIONAL
 
     setIsSubmitting(true);
-    startLoading('Processing your international booking...', 3);
-    updateLoadingStep(1, 'Validating your information...');
 
     try {
       const newBookingCode = 'CHM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-      updateLoadingStep(2, 'Creating your booking...');
+      // creating booking...
 
       const bookingData = {
         userId: user.id,
@@ -250,17 +245,18 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         throw new Error(data.message || `Server error: ${response.status}`);
       }
 
-      updateLoadingStep(3, 'Finalizing your booking...');
-
       const createdBooking = data.booking || data;
       sessionStorage.setItem('lastBooking', JSON.stringify(createdBooking));
-      
+      // hide the sent confirmation modal now that server feedback arrived
+      setShowSentModal(false);
       setTimeout(() => {
         window.location.href = `/booking-confirmation?bookingCode=${newBookingCode}`;
       }, 1000);
       
     } catch (error) {
       console.error('Booking error:', error);
+      // ensure sent modal is hidden on error as well
+      setShowSentModal(false);
       stopLoading();
       alert('Failed to create booking. Please try again.');
       setIsSubmitting(false);
@@ -407,6 +403,13 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
         totalPrice
       };
       sessionStorage.setItem('pendingBooking', JSON.stringify(pendingBookingData));
+
+      if (nationality !== 'malawian') {
+        // Ask the user to create an account before proceeding with international booking
+        setShowRedirectingModal(true);
+        return;
+      }
+
       window.location.href = `/register?redirect=booking`;
       return;
     }
@@ -536,6 +539,30 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
             <p style={{ color: '#95a5a6', fontSize: '12px', marginTop: '1rem' }}>
               Please do not close this window
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Sent Confirmation Modal (shown after Agree & Proceed for international bookings) */}
+      {showSentModal && (
+        <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', maxWidth: '480px', width: '90%', textAlign: 'center' }}>
+            <h3 style={{ marginTop: 0 }}>We have sent your booking</h3>
+            <p style={{ color: '#666' }}>You will be redirected to your user account shortly.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Create account prompt for international booking when user is not signed in */}
+      {showRedirectingModal && (
+        <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', maxWidth: '460px', width: '90%', textAlign: 'center' }}>
+            <h3 style={{ marginTop: 0 }}>Create account to proceed</h3>
+            <p style={{ color: '#666', marginBottom: '24px' }}>You need an account to complete this booking. Create your account now to continue.</p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setShowRedirectingModal(false)} style={{ flex: 1, padding: '12px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { window.location.href = `/register?redirect=booking`; }} style={{ flex: 1, padding: '12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Proceed</button>
+            </div>
           </div>
         </div>
       )}
@@ -748,7 +775,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                     {nationality === 'international' && (
                       <>
                         <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>WhatsApp / International Phone</label><input type="tel" value={personalDetails.phone} onChange={(e) => { setPersonalDetails({...personalDetails, phone: e.target.value}); clearFormError(); }} placeholder="Include country code" style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
-                        <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Passport Number *</label><input type="text" value={personalDetails.passportNumber} onChange={(e) => { setPersonalDetails({...personalDetails, passportNumber: e.target.value}); clearFormError(); }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
+                        <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Passport Number</label><input type="text" value={personalDetails.passportNumber} onChange={(e) => { setPersonalDetails({...personalDetails, passportNumber: e.target.value}); clearFormError(); }} placeholder="Provide later" style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
                       </>
                     )}
                     <div style={{ marginBottom: '20px' }}><label style={{ display: 'block', marginBottom: '8px' }}>Emergency Contact (Optional)</label><input type="text" value={personalDetails.emergencyContact} onChange={(e) => setPersonalDetails({...personalDetails, emergencyContact: e.target.value})} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} /></div>
@@ -786,11 +813,6 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                       <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#e67e22' }}>
                         USD {totalPrice.toLocaleString()}
                       </div>
-                      {nationality === 'malawian' && (
-                        <div style={{ fontSize: '16px', color: '#2c3e50', marginTop: '5px' }}>
-                          ≈ MWK {(totalPrice * 1800).toLocaleString()}
-                        </div>
-                      )}
                       {airportPickup && <small>+ USD {airportPickupRate} for airport pickup</small>}
                       {nationality !== 'malawian' && (
                         <small style={{ display: 'block', marginTop: '5px' }}>※ 50% upfront payment required on arrival in USD</small>
@@ -845,7 +867,7 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
 
       {/* International Confirmation Modal */}
       {showInternationalConfirm && !showLoadingOverlay && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2200 }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2200 }}>
           <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '450px', width: '90%', padding: '30px', textAlign: 'center' }}>
             <div style={{ width: '70px', height: '70px', backgroundColor: '#f39c12', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}><span style={{ fontSize: '40px' }}>🌍</span></div>
             <h2>International Booking</h2>
@@ -858,14 +880,12 @@ const ActivityDetailModal = ({ activity, onClose, user }) => {
                 <li>📋 Please bring your passport for verification</li>
               </ul>
             </div>
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <button onClick={() => setShowInternationalConfirm(false)} style={{ flex: 1, padding: '12px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
+              <div style={{ display: 'flex', gap: '15px' }}>
+              <button onClick={() => setShowInternationalConfirm(false)} disabled={isSubmitting} style={{ flex: 1, padding: '12px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>Cancel</button>
               <button onClick={() => {
-                setShowInternationalConfirm(false);
                 setIsSubmitting(true);
-                startLoading('Submitting your booking...', nationality === 'malawian' ? 4 : 3);
                 handleInternationalBooking();
-              }} style={{ flex: 1, padding: '12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Agree & Proceed</button>
+              }} disabled={isSubmitting} style={{ flex: 1, padding: '12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>{isSubmitting ? 'Submitting...' : 'Agree & Proceed'}</button>
             </div>
           </div>
         </div>

@@ -19,11 +19,11 @@ const sendWelcomeEmail = async (email, name) => {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
         <div style="text-align: center; background-color: #e67e22; padding: 20px; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0;">Welcome to Chimango Tourism!</h1>
+          <h1 style="color: white; margin: 0;">Welcome to Chimango Tours!</h1>
         </div>
         <div style="padding: 20px;">
           <h2>Hello ${name},</h2>
-          <p>Thank you for registering with Chimango Tourism!</p>
+          <p>Thank you for registering with Chimango Tours!</p>
           <p>We're excited to help you discover the beauty of Malawi. With your account, you can:</p>
           <ul>
             <li>Browse amazing activities and tours</li>
@@ -37,11 +37,11 @@ const sendWelcomeEmail = async (email, name) => {
             </a>
           </div>
           <p>If you have any questions, feel free to contact us.</p>
-          <p>Best regards,<br>Chimango Tourism Team</p>
+          <p>Best regards,<br>Chimango Tours Team</p>
         </div>
         <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 0 0 10px 10px; font-size: 12px; color: #666;">
-          <p>Chimango Tourism - Discover the beauty of Malawi</p>
-          <p>Email: info@chimangotourism.com | Phone: +265 123 456 789</p>
+          <p>Chimango Tours - Discover the beauty of Malawi</p>
+          <p>Email: info@chimangotourism.com | Phone: +265 986 209 952, +265 881 392 878</p>
         </div>
       </div>
     `
@@ -65,7 +65,7 @@ const sendPasswordResetEmail = async (email, name, resetToken) => {
         </div>
         <div style="padding: 20px;">
           <h2>Hello ${name},</h2>
-          <p>We received a request to reset your password for your Chimango Tourism account.</p>
+          <p>We received a request to reset your password for your Chimango Tours account.</p>
           <p>Click the button below to reset your password:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${resetUrl}" style="background-color: #e67e22; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
@@ -78,7 +78,7 @@ const sendPasswordResetEmail = async (email, name, resetToken) => {
           <p style="font-size: 12px; color: #666;">For security reasons, do not share this link with anyone.</p>
         </div>
         <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 0 0 10px 10px; font-size: 12px; color: #666;">
-          <p>Chimango Tourism - Discover the beauty of Malawi</p>
+          <p>Chimango Tours - Discover the beauty of Malawi</p>
         </div>
       </div>
     `
@@ -112,7 +112,7 @@ const sendBookingConfirmationEmail = async (email, name, booking) => {
             <p><strong>Date:</strong> ${new Date(booking.selectedActivities[0]?.selectedDate).toLocaleDateString()}</p>
             <p><strong>Number of Days:</strong> ${booking.selectedActivities[0]?.numberOfDays}</p>
             <p><strong>Number of People:</strong> ${booking.selectedActivities[0]?.numberOfPeople}</p>
-            <p><strong>Total Amount:</strong> MK ${booking.totalPrice?.toLocaleString()}</p>
+            <p><strong>Total Amount:</strong> USD ${booking.totalPrice?.toLocaleString()}</p>
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
@@ -121,11 +121,12 @@ const sendBookingConfirmationEmail = async (email, name, booking) => {
             </a>
           </div>
           
-          <p>Thank you for choosing Chimango Tourism!</p>
-          <p>Best regards,<br>Chimango Tourism Team</p>
+          <p>Thank you for choosing Chimango Tours!</p>
+          <p>Best regards,<br>Chimango Tours Team</p>
         </div>
         <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 0 0 10px 10px; font-size: 12px; color: #666;">
-          <p>Chimango Tourism - Discover the beauty of Malawi</p>
+          <p>Chimango Tours - Discover the beauty of Malawi</p>
+          <p>Email: info@chimangotourism.com | Phone: +265 986 209 952, +265 881 392 878</p>
         </div>
       </div>
     `
@@ -155,10 +156,11 @@ const sendPaymentVerificationEmail = async (email, name, bookingCode) => {
           </div>
           
           <p>We look forward to serving you!</p>
-          <p>Best regards,<br>Chimango Tourism Team</p>
+          <p>Best regards,<br>Chimango Tours Team</p>
         </div>
         <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 0 0 10px 10px; font-size: 12px; color: #666;">
-          <p>Chimango Tourism - Discover the beauty of Malawi</p>
+          <p>Chimango Tours - Discover the beauty of Malawi</p>
+          <p>Email: info@chimangotourism.com | Phone: +265 986 209 952, +265 881 392 878</p>
         </div>
       </div>
     `

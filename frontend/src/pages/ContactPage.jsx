@@ -14,7 +14,7 @@ const ContactPage = () => {
   const [error, setError] = useState('');
 
   // WhatsApp number for receiving messages
-  const WHATSAPP_NUMBER = '265995718815';
+  const WHATSAPP_NUMBER = '265986209952';
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -30,7 +30,7 @@ const ContactPage = () => {
 ${formData.message}
 
 ---
-Sent from Chimango Tour Website`;
+Sent from Chimango Tours Website`;
   };
 
   const handleSubmit = async (e) => {
@@ -72,7 +72,7 @@ Sent from Chimango Tour Website`;
   const contactInfo = [
     { icon: '📍', title: 'Visit Us', details: 'Lilongwe, Malawi', link: null },
     { icon: '📧', title: 'Email Us', details: 'goshsolution@gmail.com', link: 'mailto:goshsolution@gmail.com' },
-    { icon: '📞', title: 'Call Us', details: '0995718815', link: 'tel:0995718815' },
+    { icon: '📞', title: 'Call Us', details: '+265 986 209 952, +265 881 392 878', link: 'tel:+265986209952' },
     { icon: '⏰', title: 'Business Hours', details: 'Mon-Fri: 8am-5pm\nSat: 9am-3pm\nSun: Closed', link: null }
   ];
 
@@ -244,7 +244,7 @@ Sent from Chimango Tour Website`;
 
               <div className="support-cta">
                 <p>Still have questions?</p>
-                <button className="btn-chat" onClick={() => window.location.href = 'tel:0995718815'}>
+                <button className="btn-chat" onClick={() => window.location.href = 'tel:+265986209952'}>
                   📞 Call Support
                 </button>
               </div>
@@ -258,7 +258,7 @@ Sent from Chimango Tour Website`;
         <div className="container">
           <div className="map-wrapper">
             <iframe
-              title="Chimango Tour Location"
+              title="Chimango Tours Location"
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1960529.123456789!2d33.0!3d-13.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTPCsDE5JzUyLjAiUyAzM8KwMDAnMDAuMCJF!5e0!3m2!1sen!2smw!4v1234567890123!5m2!1sen!2smw"
               width="100%"
               height="400"
@@ -271,7 +271,7 @@ Sent from Chimango Tour Website`;
               <div className="map-location">
                 <span className="location-icon">📍</span>
                 <div>
-                  <h4>Chimango Tour Office</h4>
+                  <h4>Chimango Tours Office</h4>
                   <p>Lilongwe, Malawi</p>
                 </div>
               </div>

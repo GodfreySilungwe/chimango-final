@@ -450,7 +450,7 @@ const UserProfilePage = () => {
                       </div>
                       <div className="booking-detail">
                         <span className="detail-label">Total Price:</span>
-                        <span className="detail-value">MK {booking.totalPrice?.toLocaleString()}</span>
+                        <span className="detail-value">USD {booking.totalPrice?.toLocaleString()}</span>
                       </div>
                       <div className="booking-detail">
                         <span className="detail-label">Booked on:</span>

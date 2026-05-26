@@ -35,7 +35,7 @@ const Footer = () => {
           <span style={{ margin: '0 10px', color: '#bdc3c7' }}>|</span>
           <Link to="/contact" style={{ color: '#e67e22', textDecoration: 'none', fontSize: '12px' }}>Contact</Link>
           <p style={{ margin: '10px 0 5px', fontSize: '12px', color: '#bdc3c7' }}>
-            © {new Date().getFullYear()} Chimango Tour. All rights reserved.
+            © {new Date().getFullYear()} Chimango Tours. All rights reserved.
           </p>
           <p style={{ margin: '5px 0', fontSize: '12px', color: '#bdc3c7' }}>
             Discover the beauty of Malawi

@@ -126,7 +126,7 @@ const LoginPage = () => {
         <div className="login-brand">
           <div className="brand-content">
             <div className="brand-icon">🌍✨</div>
-            <h1 className="brand-title">Chimango Tour</h1>
+              <h1 className="brand-title">Chimango Tours</h1>
             <p className="brand-tagline">Discover the Warm Heart of Africa</p>
             <div className="brand-features">
               <div className="brand-feature">
