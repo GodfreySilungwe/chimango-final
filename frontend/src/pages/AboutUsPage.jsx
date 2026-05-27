@@ -26,21 +26,21 @@ const AboutUsPage = () => {
 
   const teamMembers = [
     {
-      name: 'Godfrey Silungwe',
+      name: 'Davie Chimango',
       role: 'Founder & CEO',
       bio: 'Passionate about showcasing Malawi\'s beauty and creating unforgettable travel experiences.',
       image: '/images/team/godfrey.jpg',
       icon: '👨‍💼'
     },
     {
-      name: 'Sarah Mwale',
+      name: 'Loius Mwenda',
       role: 'Head of Operations',
       bio: 'Expert in logistics and ensuring seamless travel experiences for all our clients.',
       image: '/images/team/sarah.jpg',
       icon: '👩‍💼'
     },
     {
-      name: 'Michael Banda',
+      name: 'Godfrey Silungwe',
       role: 'Lead Tour Guide',
       bio: 'Certified guide with 8+ years of experience across Malawi\'s national parks.',
       image: '/images/team/michael.jpg',

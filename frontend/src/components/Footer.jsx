@@ -20,7 +20,7 @@ const Footer = () => {
       }}>
         <div style={{ textAlign: 'center', flex: 1 }}>
           <p style={{ margin: '5px 0', fontSize: '14px' }}>
-            Designed by <strong style={{ color: '#e67e22' }}>Gosh Solutions</strong>
+            Website Designed by <strong style={{ color: '#e67e22' }}>Gosh Solutions</strong>
           </p>
           <p style={{ margin: '5px 0', fontSize: '12px', color: '#bdc3c7' }}>
             Email: <a href="mailto:goshsolution@gmail.com" style={{ color: '#e67e22', textDecoration: 'none' }}>goshsolution@gmail.com</a>

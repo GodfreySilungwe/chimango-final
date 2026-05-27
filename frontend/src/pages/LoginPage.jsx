@@ -125,27 +125,8 @@ const LoginPage = () => {
         {/* Left Side - Brand Section */}
         <div className="login-brand">
           <div className="brand-content">
-            <div className="brand-icon">🌍✨</div>
               <h1 className="brand-title">Chimango Tours</h1>
             <p className="brand-tagline">Discover the Warm Heart of Africa</p>
-            <div className="brand-features">
-              <div className="brand-feature">
-                <span className="feature-icon">✓</span>
-                <span>Curated Experiences</span>
-              </div>
-              <div className="brand-feature">
-                <span className="feature-icon">✓</span>
-                <span>Expert Local Guides</span>
-              </div>
-              <div className="brand-feature">
-                <span className="feature-icon">✓</span>
-                <span>Sustainable Tourism</span>
-              </div>
-              <div className="brand-feature">
-                <span className="feature-icon">✓</span>
-                <span>24/7 Customer Support</span>
-              </div>
-            </div>
             <div className="brand-testimonial">
               <div className="testimonial-quote">"</div>
               <p>"An unforgettable experience! The team went above and beyond to make our trip special."</p>

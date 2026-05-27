@@ -71,7 +71,7 @@ Sent from Chimango Tours Website`;
 
   const contactInfo = [
     { icon: '📍', title: 'Visit Us', details: 'Lilongwe, Malawi', link: null },
-    { icon: '📧', title: 'Email Us', details: 'goshsolution@gmail.com', link: 'mailto:goshsolution@gmail.com' },
+    { icon: '📧', title: 'Email Us', details: 'chimangotours@gmail.com', link: 'mailto:chimangotours@gmail.com' },
     { icon: '📞', title: 'Call Us', details: '+265 986 209 952, +265 881 392 878', link: 'tel:+265986209952' },
     { icon: '⏰', title: 'Business Hours', details: 'Mon-Fri: 8am-5pm\nSat: 9am-3pm\nSun: Closed', link: null }
   ];

@@ -650,8 +650,11 @@ const ActivityDetailModal = ({ activity, onClose, user, selectedAccommodation })
       {showSentModal && (
         <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', maxWidth: '480px', width: '90%', textAlign: 'center' }}>
-            <h3 style={{ marginTop: 0 }}>We have sent your booking</h3>
-            <p style={{ color: '#666' }}>You will be redirected to your user account shortly.</p>
+            <div style={{ width: '70px', height: '70px', margin: '0 auto 12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '56px', height: '56px', border: '4px solid #f0f0f0', borderTop: '4px solid #10b981', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            </div>
+            <h3 style={{ marginTop: 0 }}>Loading your account</h3>
+            <p style={{ color: '#666' }}>Please wait while we redirect you to your account.</p>
           </div>
         </div>
       )}
@@ -661,7 +664,7 @@ const ActivityDetailModal = ({ activity, onClose, user, selectedAccommodation })
         <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', maxWidth: '460px', width: '90%', textAlign: 'center' }}>
             <h3 style={{ marginTop: 0 }}>Create account to proceed</h3>
-            <p style={{ color: '#666', marginBottom: '24px' }}>You need an account to complete an international booking. Create your account now to continue.</p>
+            <p style={{ color: '#666', marginBottom: '24px' }}>Create a free account to complete this booking</p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button onClick={() => setShowRedirectingModal(false)} style={{ flex: 1, padding: '12px', backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => { window.location.href = `/register?redirect=booking`; }} style={{ flex: 1, padding: '12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Proceed</button>
@@ -861,6 +864,23 @@ const ActivityDetailModal = ({ activity, onClose, user, selectedAccommodation })
                       </>
                     )}
                     <button onClick={handleTripContinue} style={{ width: '100%', padding: '14px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>Continue →</button>
+                    <button 
+                      onClick={() => { window.location.href = '/'; }} 
+                      style={{ 
+                        width: '100%', 
+                        marginTop: '10px',
+                        padding: '10px', 
+                        backgroundColor: '#10b981', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '8px', 
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        fontSize: '14px'
+                      }}
+                    >
+                      ← Back to Homepage
+                    </button>
                   </div>
                 )}
 
@@ -1005,9 +1025,11 @@ const ActivityDetailModal = ({ activity, onClose, user, selectedAccommodation })
           <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '450px', width: '90%', padding: '30px', textAlign: 'center' }}>
             {isSubmitting ? (
               <>
-                <div style={{ width: '70px', height: '70px', backgroundColor: '#2ecc71', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}><span style={{ fontSize: '40px' }}>✅</span></div>
-                <h2>We have sent your booking</h2>
-                <p style={{ color: '#666' }}>You will be redirected to your user account shortly.</p>
+                <div style={{ width: '70px', height: '70px', margin: '0 auto 12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '56px', height: '56px', border: '4px solid #f0f0f0', borderTop: '4px solid #10b981', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                </div>
+                <h2>Loading your account</h2>
+                <p style={{ color: '#666' }}>Please wait while we redirect you to your account.</p>
               </>
             ) : (
               <>

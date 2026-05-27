@@ -107,27 +107,8 @@ const RegisterPage = () => {
         {/* Left Side - Brand Section */}
         <div className="register-brand">
           <div className="brand-content">
-            <div className="brand-icon">🌍✨</div>
             <h1 className="brand-title">Join Chimango Tours</h1>
             <p className="brand-tagline">Start your African adventure today</p>
-            <div className="brand-features">
-              <div className="brand-feature">
-                <span className="feature-icon">✓</span>
-                <span>Access exclusive deals</span>
-              </div>
-              <div className="brand-feature">
-                <span className="feature-icon">✓</span>
-                <span>Save your favorite activities</span>
-              </div>
-              <div className="brand-feature">
-                <span className="feature-icon">✓</span>
-                <span>Manage your bookings</span>
-              </div>
-              <div className="brand-feature">
-                <span className="feature-icon">✓</span>
-                <span>Earn loyalty rewards</span>
-              </div>
-            </div>
             <div className="brand-testimonial">
               <div className="testimonial-quote">"</div>
               <p>"Chimango Tours made our Malawi trip unforgettable! The booking process was seamless."</p>

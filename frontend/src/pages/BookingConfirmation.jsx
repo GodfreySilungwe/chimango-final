@@ -308,7 +308,7 @@ const BookingConfirmation = () => {
               <li>Please present this confirmation at the activity location</li>
               <li>Arrive at least 15 minutes before the scheduled time</li>
               <li>Cancellation policy applies as per our terms and conditions</li>
-              <li>For assistance, contact our support team at +265 123 456 789</li>
+              <li>For assistance, contact our support team at 📞 +265 986 20 99 52</li>
             </ul>
           </div>
 
@@ -317,7 +317,7 @@ const BookingConfirmation = () => {
             <div className="footer-logo">🌍 Chimango Tours</div>
             <div className="footer-tagline">Discover the Warm Heart of Africa</div>
             <div className="footer-contact">
-              📧 info@chimangotour.com | 📞 +265 123 456 789
+              📧 info@chimangotour.com | 📞 +265 986 20 99 52 or +265 881 39 28 78
             </div>
             <div className="footer-date">
               Booking Date: {new Date().toLocaleString()}
